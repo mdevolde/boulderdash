@@ -1,3 +1,5 @@
 use super::{collidable::Collidable, movable::Movable, renderable::Renderable};
 
-pub trait Entity: Movable + Collidable + Renderable {}
+pub trait Entity: Movable + Collidable + Renderable {
+    fn get_type(&self) -> String;
+}

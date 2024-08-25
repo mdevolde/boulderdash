@@ -1,4 +1,4 @@
-use super::behaviors::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable};
+use super::{actions::movement::Movement, behaviors::{collidable::Collidable, entity::{self, Entity}, fallable::Fallable, movable::Movable, renderable::Renderable}, grid::Grid};
 
 pub struct Diamond {
     position: (i32, i32),
@@ -19,6 +19,22 @@ impl Collidable for Diamond {
     fn get_position(&self) -> (i32, i32) {
         self.position
     }
+
+    fn get_future_position(&self, grid: &Grid) -> (i32, i32) {
+        if let Some(direction) = self.is_falling() {
+            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
+                if let Some(entity) = tile.get_entity() {
+                    return match entity.get_type().as_str() {
+                        "Player" => direction.edit_position(self.position),
+                        _ => self.position,
+                    };
+                } else {
+                    return direction.edit_position(self.position);
+                }
+            }
+        }
+        self.position
+    }    
 }
 
 impl Renderable for Diamond {
@@ -27,7 +43,11 @@ impl Renderable for Diamond {
     }
 }
 
-impl Entity for Diamond {}
+impl Entity for Diamond {
+    fn get_type(&self) -> String {
+        String::from("Diamond")
+    }
+}
 
 impl Fallable { // Temporary implementation
     fn fall(&mut self) {

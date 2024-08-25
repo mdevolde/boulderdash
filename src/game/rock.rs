@@ -19,6 +19,22 @@ impl Collidable for Rock {
     fn get_position(&self) -> (i32, i32) {
         self.position
     }
+
+    fn get_future_position(&self, grid: &Grid) -> (i32, i32) {
+        if let Some(direction) = self.is_falling() {
+            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
+                if let Some(entity) = tile.get_entity() {
+                    return match entity.get_type().as_str() {
+                        "Player" => direction.edit_position(self.position),
+                        _ => self.position,
+                    };
+                } else {
+                    return direction.edit_position(self.position);
+                }
+            }
+        }
+        self.position
+    }   
 }
 
 impl Renderable for Rock {
@@ -27,7 +43,11 @@ impl Renderable for Rock {
     }
 }
 
-impl Entity for Rock {}
+impl Entity for Rock {
+    fn get_type(&self) -> String {
+        String::from("Rock")
+    }
+}
 
 impl Fallable for Rock { // Temporary implementation
     fn fall(&mut self) {

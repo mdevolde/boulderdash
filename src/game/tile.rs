@@ -7,6 +7,12 @@ pub struct Tile {
     visited: bool,
 }
 
+impl Tile {
+    pub fn get_entity(&self) -> &Option<Box<dyn Entity>> {
+        &self.entity
+    }
+}
+
 impl Renderable for Tile {
     fn render(&self) {
         match &self.entity {

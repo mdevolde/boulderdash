@@ -5,6 +5,7 @@ pub struct Player {
     position: (i32, i32),
     alive: bool,
     doing: Action,
+    pushing: bool,
 }
 
 impl Movable for Player {
@@ -21,6 +22,28 @@ impl Collidable for Player {
     fn get_position(&self) -> (i32, i32) {
         self.position
     }
+
+    fn get_future_position(&self) -> (i32, i32) {
+        if let Action::Move(direction) = self.doing {
+            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
+                if let Some(entity) = tile.get_entity() {
+                    return match entity.get_type().as_str() {
+                        "Rock" => {
+                            if self.pushing {
+                                direction.edit_position(self.position)
+                            } else {
+                                self.position
+                            }
+                        }
+                        _ => direction.edit_position(self.position),
+                    };
+                } else {
+                    return direction.edit_position(self.position);
+                }
+            }
+        }
+        self.position
+    }
 }
 
 impl Renderable for Player {
@@ -29,4 +52,8 @@ impl Renderable for Player {
     } 
 }
 
-impl Entity for Player {}
+impl Entity for Player {
+    fn get_type(&self) -> String {
+        String::from("Player")
+    }
+}

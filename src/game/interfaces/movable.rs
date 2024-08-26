@@ -1,5 +1,5 @@
-use crate::game::grid::Grid;
+use crate::game::action::Action;
 
 pub trait Movable {
-    fn move_to(&mut self, ax: i32, ay: i32, nx: i32, ny: i32, grid: &mut Grid);
+    fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action>;
 }

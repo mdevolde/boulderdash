@@ -1,8 +1,8 @@
-use std::any::Any;
+use std::{any::Any, rc::Rc};
 
 use crate::game::tile::Tile;
 
-use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::UnclonableEntity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
+use super::{action::Action, enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
 
 #[derive(Clone)]
 pub struct Rock {
@@ -38,14 +38,11 @@ impl Rock {
 }
 
 impl Movable for Rock {
-    fn move_to(&mut self, ax: i32, ay: i32, nx: i32, ny: i32, grid: &mut Grid) {
-        if let Some(actual_tile) = grid.get_mut_tile(ax, ay) {
-            actual_tile.set_object_on(Field::Empty);
-        }
-        if let Some(new_tile) = grid.get_mut_tile(nx, ny) {
-            self.position = (nx, ny);
-            new_tile.set_object_on(Field::Entity(Box::new(self.clone())));
-        }
+    fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
+        let mut actions = Vec::new();
+        actions.push(Action::new((ax, ay), Field::Empty));
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self.clone()))));
+        actions
     }
 }
 
@@ -73,7 +70,7 @@ impl Renderable for Rock {
     }
 }
 
-impl UnclonableEntity for Rock {
+impl Entity for Rock {
     fn get_type(&self) -> String {
         String::from("Rock")
     }
@@ -82,7 +79,8 @@ impl UnclonableEntity for Rock {
         self
     }
 
-    fn update(&mut self, grid: &mut Grid) {
+    fn update(&self, grid: &Grid) -> Vec<Action> {
+        let mut actions = Vec::new();
         let (px, py) = grid.get_player_position();
         let player_tile = grid.get_tile(px, py).unwrap();
         if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
@@ -91,25 +89,24 @@ impl UnclonableEntity for Rock {
                 //TODO: Implement the explosion rendering
             }
         }
-        self.fall(grid);
+        actions.extend(self.fall(grid));
+        actions
     }
 }
 
 impl Fallable for Rock {
-    fn fall(&mut self, grid: &mut Grid) {
+    fn fall(&self, grid: &Grid) -> Vec<Action> {
+        let mut actions = Vec::new();
+        let mut self_clone = self.clone();
         if let Some(movement) = self.is_falling(grid) {
             let (x, y) = movement.edit_position(self.position);
-            self.move_to(
-                self.position.0,
-                self.position.1,
-                x,
-                y,
-                grid,
-            );
-            self.falling_since += 1;
+            self_clone.falling_since += 1;
+            actions.extend(self_clone.move_to(self.position.0, self.position.1, x, y));
         } else {
-            self.falling_since = 0;
+            self_clone.falling_since = 0;
+            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_clone))));
         }
+        actions
     }
 
     fn is_falling(&self, grid: &Grid) -> Option<Movement> {

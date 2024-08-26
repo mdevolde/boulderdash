@@ -1,9 +1,11 @@
 use std::any::Any;
+use std::rc::Rc;
 
+use super::action::Action;
 use super::diamond::Diamond;
 use super::enums::field::Field;
 use super::grid::Grid;
-use super::interfaces::entity::UnclonableEntity;
+use super::interfaces::entity::Entity;
 use super::interfaces::{collidable::Collidable, movable::Movable, renderable::Renderable};
 use super::enums::movement::Movement;
 use super::rock::Rock;
@@ -24,31 +26,32 @@ impl Player {
         }
     }
 
-    pub fn push_rock(&mut self, grid: &mut Grid, rock: &mut Rock) {
+    pub fn push_rock(&self, grid: &Grid, rock: &Rock) -> Vec<Action> {
+        let mut actions = Vec::new();
         if self.pushing {
             let (rx, ry) = rock.get_position();
             if let Some(tile) = grid.get_nearest_tile(rx, ry, self.doing) {
                 if tile.get_object_on().is_none() {
                     let (frx, fry) = self.doing.edit_position((rx, ry));
-                    rock.move_to(rx, ry, frx, fry, grid);
-                    self.move_to(self.position.0, self.position.1, rx, ry, grid);
-                }
-            }
+                    actions.extend(rock.move_to(rx, ry, frx, fry));
+                    actions.extend(self.move_to(self.position.0, self.position.1, rx, ry));
+                };
+            };
         } else if self.doing == Movement::MoveLeft || self.doing == Movement::MoveRight {
-            self.pushing = true;
-        }
+            let mut self_copy = self.clone();
+            self_copy.pushing = true;
+            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_copy))));
+        };
+        actions
     }
 }
 
 impl Movable for Player {
-    fn move_to(&mut self, ax: i32, ay: i32, nx: i32, ny: i32, grid: &mut Grid) {
-        if let Some(actual_tile) = grid.get_mut_tile(ax, ay) {
-            actual_tile.set_object_on(Field::Empty);
-        }
-        if let Some(new_tile) = grid.get_mut_tile(nx, ny) {
-            self.position = (nx, ny);
-            new_tile.set_object_on(Field::Entity(Box::new(self.clone())));
-        }
+    fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
+        let mut actions = Vec::new();
+        actions.push(Action::new((ax, ay), Field::Empty));
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self.clone()))));
+        actions
     }
 }
 
@@ -97,7 +100,7 @@ impl Renderable for Player {
     } 
 }
 
-impl UnclonableEntity for Player {
+impl Entity for Player {
     fn get_type(&self) -> String {
         String::from("Player")
     }
@@ -106,27 +109,29 @@ impl UnclonableEntity for Player {
         self
     }
 
-    fn update(&mut self, grid: &mut Grid) {
+    fn update(&self, grid: &Grid) -> Vec<Action> {
+        let mut actions = Vec::new();
         let (x, y) = self.position;
         let (fx, fy) = self.get_future_position(&grid);
         if let Some(tile) = grid.get_tile(fx, fy) {
             match tile.get_object_on() {
                 Some(Field::Entity(entity)) => {
                     if entity.get_type().as_str() == "Rock" {
-                        let mut rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
-                        self.push_rock(grid, &mut rock);
+                        let rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
+                        actions.extend(self.push_rock(grid, &rock));
                     } else {
-                        self.move_to(x, y, fx, fy, grid)
-                    }
+                        actions.extend(self.move_to(x, y, fx, fy));
+                    };
                 },
                 Some(Field::Exit) => {
                     if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
                         println!("You won!"); // Temporary implementation
-                    }
+                    };
                 },
                 Some(Field::Wall(_)) => (),
-                _ => self.move_to(x, y, fx, fy, grid),
+                _ => actions.extend(self.move_to(x, y, fx, fy)),
             };
         };
+        actions
     }
 }

@@ -1,4 +1,4 @@
-use super::{enums::field::Field, grid, interfaces::renderable::Renderable};
+use super::{action::Action, enums::field::Field, grid::Grid, interfaces::renderable::Renderable};
 
 pub struct Tile {
     x: i32,
@@ -15,11 +15,13 @@ impl Tile {
         }
     }
 
-    pub fn update(&mut self, grid: &mut grid::Grid) {
+    pub fn update(&self, grid: &Grid) -> Vec<Action> {
+        let mut actions = vec![];
         match self.field {
-            Field::Entity(ref mut entity) => entity.update(grid),
+            Field::Entity(ref entity) => actions.extend(entity.update(grid)),
             _ => (),
         }
+        actions
     }
 
     pub fn get_position(&self) -> (i32, i32) {

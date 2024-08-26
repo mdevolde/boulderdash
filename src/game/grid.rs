@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use super::{enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, tile::Tile};
+use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, rock::Rock, tile::Tile};
 
 pub struct Grid {
     width: i32,
@@ -29,10 +29,21 @@ impl Grid {
     }
 
     pub fn update(&mut self) {
-        for row in &mut self.tiles {
-            for tile in row {
-                tile.update(self);
-            }
+        let mut actions = vec![];
+
+        for rock in &self.get_tiles_with_entity::<Rock>() {
+            actions.extend(rock.update(self));
+        }
+        
+        let player_tile = self.get_tile(self.player_position.0, self.player_position.1).unwrap();
+        actions.extend(player_tile.update(self));
+
+        for diamond in &self.get_tiles_with_entity::<diamond::Diamond>() {
+            actions.extend(diamond.update(self));
+        }
+
+        for action in actions {
+            action.apply(self);
         }
     }
 

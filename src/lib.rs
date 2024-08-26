@@ -3,6 +3,6 @@ pub mod game;
 
 
 #[wasm_bindgen]
-pub fn new_game() {
-    
+pub fn draw() -> Result<(), JsValue> {
+    Ok(())
 }

@@ -1,4 +1,4 @@
-use super::{behaviors::renderable::Renderable, grid::Grid, player::Player};
+use super::{interfaces::renderable::Renderable, grid::Grid, player::Player};
 
 pub struct Game {
     grid: Grid,

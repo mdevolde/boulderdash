@@ -1,10 +1,12 @@
-use super::behaviors::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
-use super::actions::movement::Movement;
+use super::enums::field::Field;
+use super::grid::Grid;
+use super::interfaces::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
+use super::enums::movement::Movement;
 
 pub struct Player {
     position: (i32, i32),
     alive: bool,
-    doing: Action,
+    doing: Movement,
     pushing: bool,
 }
 
@@ -23,27 +25,33 @@ impl Collidable for Player {
         self.position
     }
 
-    fn get_future_position(&self) -> (i32, i32) {
-        if let Action::Move(direction) = self.doing {
-            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
-                if let Some(entity) = tile.get_entity() {
-                    return match entity.get_type().as_str() {
-                        "Rock" => {
-                            if self.pushing {
-                                direction.edit_position(self.position)
-                            } else {
-                                self.position
+    fn get_future_position(&self, grid: &Grid) -> (i32, i32) {
+        match self.doing {
+            Movement::Afk => self.position,
+            direction => {
+                if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
+                    match tile.get_object_on() {
+                        Some(Field::Entity(entity)) => match entity.get_type().as_str() {
+                            "Rock" => {
+                                if self.pushing {
+                                    return direction.edit_position(self.position);
+                                } else {
+                                    return self.position;
+                                }
                             }
+                            _ => return direction.edit_position(self.position),
+                        },
+                        Some(Field::Wall(_)) => return self.position,
+                        Some(Field::Exit) | Some(Field::Empty) | None => {
+                            return direction.edit_position(self.position)
                         }
-                        _ => direction.edit_position(self.position),
-                    };
-                } else {
-                    return direction.edit_position(self.position);
+                    }
                 }
+                self.position
             }
         }
-        self.position
     }
+    
 }
 
 impl Renderable for Player {

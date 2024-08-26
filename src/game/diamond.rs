@@ -1,4 +1,4 @@
-use super::{actions::movement::Movement, behaviors::{collidable::Collidable, entity::{self, Entity}, fallable::Fallable, movable::Movable, renderable::Renderable}, grid::Grid};
+use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
 
 pub struct Diamond {
     position: (i32, i32),
@@ -23,18 +23,20 @@ impl Collidable for Diamond {
     fn get_future_position(&self, grid: &Grid) -> (i32, i32) {
         if let Some(direction) = self.is_falling() {
             if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
-                if let Some(entity) = tile.get_entity() {
-                    return match entity.get_type().as_str() {
-                        "Player" => direction.edit_position(self.position),
-                        _ => self.position,
-                    };
-                } else {
-                    return direction.edit_position(self.position);
-                }
+                match tile.get_object_on() {
+                    Some(Field::Entity(entity)) => {
+                        match entity.get_type().as_str() {
+                            "Player" => direction.edit_position(self.position),
+                            _ => self.position,
+                        }
+                    },
+                    Some(Field::Wall(_)) | Some(Field::Exit) => self.position,
+                    Some(Field::Empty) | None => direction.edit_position(self.position),
+                };
             }
         }
         self.position
-    }    
+    }
 }
 
 impl Renderable for Diamond {
@@ -49,12 +51,12 @@ impl Entity for Diamond {
     }
 }
 
-impl Fallable { // Temporary implementation
+impl Fallable for Diamond { // Temporary implementation
     fn fall(&mut self) {
         self.position.1 += 1;
     }
 
-    fn is_falling(&self) -> Some<Movement> {
-        Some(Movement::Down)
+    fn is_falling(&self) -> Option<Movement> {
+        Some(Movement::MoveDown)
     }
 }

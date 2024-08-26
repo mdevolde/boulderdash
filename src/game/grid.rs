@@ -1,4 +1,4 @@
-use super::{actions::movement, behaviors::renderable::Renderable, tile::Tile};
+use super::{enums::movement::Movement, interfaces::renderable::Renderable, tile::Tile};
 
 pub struct Grid {
     width: i32,
@@ -11,9 +11,9 @@ impl Grid {
         self.tiles.iter().find(|tile| tile.get_position() == (x, y))
     }
 
-    pub fn get_nearest_tile(&self, x: i32, y: i32, direction: movement) -> Option<&Tile> {
+    pub fn get_nearest_tile(&self, x: i32, y: i32, direction: Movement) -> Option<&Tile> {
         match direction {
-            movement::Afk => None,
+            Movement::Afk => None,
             other => {
                 let coordinates = other.edit_position((x, y));
                 self.get_tile(coordinates.0, coordinates.1)

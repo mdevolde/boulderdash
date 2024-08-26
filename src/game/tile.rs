@@ -1,4 +1,4 @@
-use super::{enums::field::Field, interfaces::renderable::Renderable};
+use super::{enums::field::Field, grid, interfaces::renderable::Renderable};
 
 pub struct Tile {
     x: i32,
@@ -12,6 +12,13 @@ impl Tile {
             x,
             y,
             field,
+        }
+    }
+
+    pub fn update(&mut self, grid: &mut grid::Grid) {
+        match self.field {
+            Field::Entity(ref mut entity) => entity.update(grid),
+            _ => (),
         }
     }
 

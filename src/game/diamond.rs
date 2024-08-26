@@ -17,18 +17,6 @@ impl Diamond {
             falling_since: 0,
         }
     }
-
-    pub fn update(&mut self, grid: &mut Grid) {
-        let (px, py) = grid.get_player_position();
-        let player_tile = grid.get_tile(px, py).unwrap();
-        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
-            let player = entity.as_any().downcast_ref::<Player>().unwrap();
-            if self.check_collision(player, grid) {
-                //TODO: Implement the explosion rendering
-            }
-        }
-        self.fall(grid);
-    }
 }
 
 impl Movable for Diamond {
@@ -74,6 +62,18 @@ impl Entity for Diamond {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn update(&mut self, grid: &mut Grid) {
+        let (px, py) = grid.get_player_position();
+        let player_tile = grid.get_tile(px, py).unwrap();
+        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
+            let player = entity.as_any().downcast_ref::<Player>().unwrap();
+            if self.check_collision(player, grid) {
+                //TODO: Implement the explosion rendering
+            }
+        }
+        self.fall(grid);
     }
 }
 

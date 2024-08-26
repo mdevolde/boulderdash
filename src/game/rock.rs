@@ -18,18 +18,6 @@ impl Rock {
         }
     }
 
-    pub fn update(&mut self, grid: &mut Grid) {
-        let (px, py) = grid.get_player_position();
-        let player_tile = grid.get_tile(px, py).unwrap();
-        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
-            let player = entity.as_any().downcast_ref::<Player>().unwrap();
-            if self.check_collision(player, grid) {
-                //TODO: Implement the explosion rendering
-            }
-        }
-        self.fall(grid);
-    }
-
     fn is_fallable_near(&self, grid: &Grid) -> bool {
         let directions = vec![Movement::MoveDown, Movement::MoveLeft, Movement::MoveRight, Movement::MoveUp];
         for direction in directions {
@@ -92,6 +80,18 @@ impl Entity for Rock {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn update(&mut self, grid: &mut Grid) {
+        let (px, py) = grid.get_player_position();
+        let player_tile = grid.get_tile(px, py).unwrap();
+        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
+            let player = entity.as_any().downcast_ref::<Player>().unwrap();
+            if self.check_collision(player, grid) {
+                //TODO: Implement the explosion rendering
+            }
+        }
+        self.fall(grid);
     }
 }
 

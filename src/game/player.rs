@@ -23,30 +23,6 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, grid: &mut Grid) {
-        let (x, y) = self.position;
-        let (fx, fy) = self.get_future_position(&grid);
-        if let Some(tile) = grid.get_tile(fx, fy) {
-            match tile.get_object_on() {
-                Some(Field::Entity(entity)) => {
-                    if entity.get_type().as_str() == "Rock" {
-                        let mut rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
-                        self.push_rock(grid, &mut rock);
-                    } else {
-                        self.move_to(x, y, fx, fy, grid)
-                    }
-                },
-                Some(Field::Exit) => {
-                    if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
-                        println!("You won!"); // Temporary implementation
-                    }
-                },
-                Some(Field::Wall(_)) => (),
-                _ => self.move_to(x, y, fx, fy, grid),
-            };
-        };
-    }
-
     pub fn push_rock(&mut self, grid: &mut Grid, rock: &mut Rock) {
         if self.pushing {
             let (rx, ry) = rock.get_position();
@@ -57,7 +33,7 @@ impl Player {
                     self.move_to(self.position.0, self.position.1, rx, ry, grid);
                 }
             }
-        } else {
+        } else if self.doing == Movement::MoveLeft || self.doing == Movement::MoveRight {
             self.pushing = true;
         }
     }
@@ -92,7 +68,8 @@ impl Collidable for Player {
                     match tile.get_object_on() {
                         Some(Field::Entity(entity)) => match entity.get_type().as_str() {
                             "Rock" => {
-                                if self.pushing {
+                                if self.pushing && direction == Movement::MoveLeft 
+                                || direction == Movement::MoveRight { // TODO: reinitialize pushing when direction changes
                                     return direction.edit_position(self.position);
                                 } else {
                                     return self.position;
@@ -126,5 +103,29 @@ impl Entity for Player {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn update(&mut self, grid: &mut Grid) {
+        let (x, y) = self.position;
+        let (fx, fy) = self.get_future_position(&grid);
+        if let Some(tile) = grid.get_tile(fx, fy) {
+            match tile.get_object_on() {
+                Some(Field::Entity(entity)) => {
+                    if entity.get_type().as_str() == "Rock" {
+                        let mut rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
+                        self.push_rock(grid, &mut rock);
+                    } else {
+                        self.move_to(x, y, fx, fy, grid)
+                    }
+                },
+                Some(Field::Exit) => {
+                    if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
+                        println!("You won!"); // Temporary implementation
+                    }
+                },
+                Some(Field::Wall(_)) => (),
+                _ => self.move_to(x, y, fx, fy, grid),
+            };
+        };
     }
 }

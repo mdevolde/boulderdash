@@ -28,6 +28,10 @@ impl Grid {
         }
     }
 
+    pub fn get_mut_tiles(&mut self) -> &mut Vec<Vec<Tile>> {
+        &mut self.tiles
+    }
+
     pub fn get_tile(&self, x: i32, y: i32) -> Option<&Tile> {
         self.tiles.get(y as usize).and_then(|row| row.get(x as usize))
     }

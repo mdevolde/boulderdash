@@ -1,8 +1,30 @@
+use crate::game::tile::Tile;
+
 use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
 
 pub struct Rock {
     position: (i32, i32),
-    falling: bool,
+    falling_since: i32,
+}
+
+impl Rock {
+    fn _is_fallable_near(&self, grid: &Grid) -> bool {
+        let directions = vec![Movement::MoveDown, Movement::MoveLeft, Movement::MoveRight, Movement::MoveUp];
+        for direction in directions {
+            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
+                match tile.get_object_on() {
+                    Some(Field::Entity(entity)) => {
+                        if entity.get_type().as_str() != "Player" {
+                            return true;
+                        }
+                    },
+                    Some(Field::Wall(_)) | Some(Field::Exit) => return false,
+                    Some(Field::Empty) | None => continue,
+                }
+            }
+        }
+        false
+    }
 }
 
 impl Movable for Rock {
@@ -21,21 +43,11 @@ impl Collidable for Rock {
     }
 
     fn get_future_position(&self, grid: &Grid) -> (i32, i32) {
-        if let Some(direction) = self.is_falling() {
-            if let Some(tile) = grid.get_nearest_tile(self.position.0, self.position.1, direction) {
-                match tile.get_object_on() {
-                    Some(Field::Entity(entity)) => {
-                        match entity.get_type().as_str() {
-                            "Player" => direction.edit_position(self.position),
-                            _ => self.position,
-                        }
-                    },
-                    Some(Field::Wall(_)) | Some(Field::Exit) => self.position,
-                    Some(Field::Empty) | None => direction.edit_position(self.position),
-                };
-            }
+        if let Some(direction) = self.is_falling(grid) {
+            direction.edit_position(self.position)
+        } else {
+            self.position
         }
-        self.position
     }
 }
 
@@ -56,7 +68,52 @@ impl Fallable for Rock { // Temporary implementation
         self.position.1 += 1;
     }
 
-    fn is_falling(&self) -> Option<Movement> {
-        Some(Movement::MoveDown)
+    fn is_falling(&self, grid: &Grid) -> Option<Movement> {
+        fn can_move_to(tile: Option<&Tile>, movement: Movement, falling_since: i32) -> Option<Movement> {
+            match tile {
+                Some(tile) => match tile.get_object_on() {
+                    Some(Field::Entity(entity)) => {
+                        if entity.get_type().as_str() == "Player" && falling_since > 0 && movement == Movement::MoveDown {
+                            Some(movement)
+                        } else {
+                            None
+                        }
+                    },
+                    Some(Field::Wall(_)) | Some(Field::Exit) => None,
+                    Some(Field::Empty) | None => Some(movement),
+                },
+                None => None,
+            }
+        }
+
+        if let Some(movement) = can_move_to(
+            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveDown),
+            Movement::MoveDown,
+            self.falling_since,
+        ) {
+            return Some(movement);
+        }
+    
+        if let Some(movement) = can_move_to(
+            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveLeft),
+            Movement::MoveLeft,
+            self.falling_since,
+        ) {
+            if self._is_fallable_near(grid) {
+                return Some(movement);
+            }
+        }
+    
+        if let Some(movement) = can_move_to(
+            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveRight),
+            Movement::MoveRight,
+            self.falling_since,
+        ) {
+            if self._is_fallable_near(grid) {
+                return Some(movement);
+            }
+        }
+    
+        None
     }
 }

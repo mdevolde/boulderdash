@@ -1,7 +1,8 @@
-use std::any::Any;
+use std::{any::Any, rc::Rc};
 
-use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, rock::Rock, tile::Tile};
+use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
+#[derive(Debug)]
 pub struct Grid {
     width: i32,
     height: i32,
@@ -10,45 +11,71 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn new(width: i32, height: i32) -> Self {
-        let mut tiles = vec![];
-        for y in 0..height {
-            let mut row = vec![];
-            for x in 0..width {
-                row.push(Tile::new(x, y, Field::Empty)); //TODO: Implement the level loading with file reading
+    pub fn new(file_path: &str) -> Self {
+        let file = std::fs::read_to_string(file_path).expect("Could not read file");
+        Grid::from_str(&file)
+    }
+
+    pub fn from_str(input: &str) -> Self {
+        let mut lines = input.lines();
+
+        let size_line = lines.next().unwrap();
+        let mut size_iter = size_line.split_whitespace();
+        let height: i32 = size_iter.next().unwrap().parse().unwrap();
+        let width: i32 = size_iter.next().unwrap().parse().unwrap();
+
+        let player_line = lines.next().unwrap();
+        let mut player_iter = player_line.split_whitespace();
+        let player_x: i32 = player_iter.next().unwrap().parse().unwrap();
+        let player_y: i32 = player_iter.next().unwrap().parse().unwrap();
+
+        lines.next();
+
+        let mut tiles = Vec::new();
+        for (y, line) in lines.enumerate() {
+            let mut row = Vec::new();
+            for (x, ch) in line.chars().enumerate() {
+                let tile = Tile::new(x as i32, y as i32,
+                    match ch {
+                        'W' => Field::Wall(Wall::new(x as i32, y as i32)),
+                        'r' => Field::Entity(Rc::new(Rock::new(x as i32, y as i32))),
+                        'd' => Field::Entity(Rc::new(diamond::Diamond::new(x as i32, y as i32))),
+                        '.' => Field::Empty,
+                        'P' => Field::Entity(Rc::new(Player::new(x as i32, y as i32))),
+                        'X' => Field::Exit,
+                        _ => Field::Empty,
+                    }
+                );
+                row.push(tile);
             }
             tiles.push(row);
         }
-        let player_position = (width / 2, height / 2); // Temporary implementation
+
         Grid {
             width,
             height,
             tiles,
-            player_position,
+            player_position: (player_x, player_y),
         }
     }
 
     pub fn update(&mut self) {
         let mut actions = vec![];
 
-        for rock in &self.get_tiles_with_entity::<Rock>() {
+        for rock in self.get_tiles_with_entity::<Rock>() {
             actions.extend(rock.update(self));
         }
         
         let player_tile = self.get_tile(self.player_position.0, self.player_position.1).unwrap();
         actions.extend(player_tile.update(self));
 
-        for diamond in &self.get_tiles_with_entity::<diamond::Diamond>() {
+        for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
             actions.extend(diamond.update(self));
         }
 
         for action in actions {
             action.apply(self);
         }
-    }
-
-    pub fn get_mut_tiles(&mut self) -> &mut Vec<Vec<Tile>> {
-        &mut self.tiles
     }
 
     pub fn get_tile(&self, x: i32, y: i32) -> Option<&Tile> {

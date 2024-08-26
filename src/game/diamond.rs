@@ -74,6 +74,10 @@ impl Entity for Diamond {
         actions.extend(self.fall(grid));
         actions
     }
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Diamond at {:?}", self.position)
+    }
 }
 
 impl Fallable for Diamond { // Temporary implementation

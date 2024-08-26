@@ -1,5 +1,6 @@
 use super::{action::Action, enums::field::Field, grid::Grid, interfaces::renderable::Renderable};
 
+#[derive(Debug)]
 pub struct Tile {
     x: i32,
     y: i32,

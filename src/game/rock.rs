@@ -92,6 +92,10 @@ impl Entity for Rock {
         actions.extend(self.fall(grid));
         actions
     }
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Rock at {:?}", self.position)
+    }
 }
 
 impl Fallable for Rock {

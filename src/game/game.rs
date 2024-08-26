@@ -7,13 +7,23 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(width: i32, height: i32) -> Self {
-        let grid = Grid::new(width, height);
+    pub fn new() -> Self {
+        let level = 1;
+        let level_file = Game::get_level_file(level as i32);
+        let grid = Grid::new(&level_file);
         Game {
             grid,
             score: 0,
-            level: 1,
+            level,
         }
+    }
+
+    pub fn get_level_file(level: i32) -> String {
+        format!("./static/maps/level_{}.bbcff", level)
+    }
+
+    pub fn get_grid(&self) -> &Grid {
+        &self.grid
     }
 }
 

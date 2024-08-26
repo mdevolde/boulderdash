@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::game::tile::Tile;
 
 use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
@@ -5,7 +7,6 @@ use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{
 #[derive(Clone)]
 pub struct Diamond {
     position: (i32, i32),
-    collected: bool, // Temporary implementation because better to replace the Diamond with the player
     falling_since: i32,
 }
 
@@ -22,8 +23,8 @@ impl Movable for Diamond {
 }
 
 impl Collidable for Diamond {
-    fn check_collision(&self, other: &dyn Collidable) -> bool {
-        self.position == other.get_position()
+    fn check_collision(&self, other: &dyn Collidable, grid: Grid) -> bool {
+        self.get_future_position(&grid) == other.get_position()
     }
 
     fn get_position(&self) -> (i32, i32) {
@@ -48,6 +49,10 @@ impl Renderable for Diamond {
 impl Entity for Diamond {
     fn get_type(&self) -> String {
         String::from("Diamond")
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -84,10 +89,6 @@ impl Fallable for Diamond { // Temporary implementation
                 },
                 None => None,
             }
-        }
-
-        if self.collected {
-            return None;
         }
 
         if let Some(movement) = can_move_to(

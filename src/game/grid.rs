@@ -1,4 +1,6 @@
-use super::{enums::movement::Movement, interfaces::renderable::Renderable, tile::Tile};
+use std::any::Any;
+
+use super::{enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, tile::Tile};
 
 pub struct Grid {
     width: i32,
@@ -23,6 +25,20 @@ impl Grid {
                 self.get_tile(coordinates.0, coordinates.1)
             }
         }
+    }
+
+    pub fn get_tiles_with_entity<T: Entity + Any>(&self) -> Vec<&T> {
+        let mut concerned_tiles = vec![];
+        for row in &self.tiles {
+            for tile in row {
+                if let Some(Field::Entity(entity)) = tile.get_object_on() {
+                    if let Some(entity) = entity.as_any().downcast_ref::<T>() {
+                        concerned_tiles.push(entity);
+                    }
+                }
+            }
+        }
+        concerned_tiles
     }
 }
 

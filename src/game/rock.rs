@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::game::tile::Tile;
 
 use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
@@ -41,8 +43,8 @@ impl Movable for Rock {
 }
 
 impl Collidable for Rock {
-    fn check_collision(&self, other: &dyn Collidable) -> bool {
-        self.position == other.get_position()
+    fn check_collision(&self, other: &dyn Collidable, grid: Grid) -> bool {
+        self.get_future_position(&grid) == other.get_position()
     }
 
     fn get_position(&self) -> (i32, i32) {
@@ -67,6 +69,10 @@ impl Renderable for Rock {
 impl Entity for Rock {
     fn get_type(&self) -> String {
         String::from("Rock")
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

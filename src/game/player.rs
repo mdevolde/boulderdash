@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use super::enums::field::Field;
 use super::grid::Grid;
 use super::interfaces::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
@@ -6,7 +8,6 @@ use super::enums::movement::Movement;
 #[derive(Clone)]
 pub struct Player {
     position: (i32, i32),
-    alive: bool,
     doing: Movement,
     pushing: bool,
 }
@@ -25,8 +26,8 @@ impl Movable for Player {
 }
 
 impl Collidable for Player {
-    fn check_collision(&self, other: &dyn Collidable) -> bool {
-        self.position == other.get_position()
+    fn check_collision(&self, other: &dyn Collidable, grid: Grid) -> bool {
+        self.get_future_position(&grid) == other.get_position()
     }
 
     fn get_position(&self) -> (i32, i32) {
@@ -71,5 +72,9 @@ impl Renderable for Player {
 impl Entity for Player {
     fn get_type(&self) -> String {
         String::from("Player")
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

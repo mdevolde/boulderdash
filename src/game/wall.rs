@@ -1,5 +1,6 @@
 use super::{grid::Grid, interfaces::{collidable::Collidable, renderable::Renderable}};
 
+#[derive(Clone)]
 pub struct Wall {
     position: (i32, i32),
 }

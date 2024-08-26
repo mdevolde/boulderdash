@@ -28,6 +28,14 @@ impl Grid {
         }
     }
 
+    pub fn update(&mut self) {
+        for row in &mut self.tiles {
+            for tile in row {
+                tile.update(self);
+            }
+        }
+    }
+
     pub fn get_mut_tiles(&mut self) -> &mut Vec<Vec<Tile>> {
         &mut self.tiles
     }

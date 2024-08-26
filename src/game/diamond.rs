@@ -2,7 +2,7 @@ use std::any::Any;
 
 use crate::game::tile::Tile;
 
-use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
+use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::UnclonableEntity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
 
 #[derive(Clone)]
 pub struct Diamond {
@@ -55,7 +55,7 @@ impl Renderable for Diamond {
     }
 }
 
-impl Entity for Diamond {
+impl UnclonableEntity for Diamond {
     fn get_type(&self) -> String {
         String::from("Diamond")
     }

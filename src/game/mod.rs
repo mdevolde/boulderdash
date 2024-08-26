@@ -1,6 +1,7 @@
 pub mod enums;
 pub mod interfaces;
 
+pub mod action;
 pub mod diamond;
 pub mod game;
 pub mod grid;

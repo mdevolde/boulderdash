@@ -3,7 +3,8 @@ use std::any::Any;
 use super::diamond::Diamond;
 use super::enums::field::Field;
 use super::grid::Grid;
-use super::interfaces::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
+use super::interfaces::entity::UnclonableEntity;
+use super::interfaces::{collidable::Collidable, movable::Movable, renderable::Renderable};
 use super::enums::movement::Movement;
 use super::rock::Rock;
 
@@ -96,7 +97,7 @@ impl Renderable for Player {
     } 
 }
 
-impl Entity for Player {
+impl UnclonableEntity for Player {
     fn get_type(&self) -> String {
         String::from("Player")
     }

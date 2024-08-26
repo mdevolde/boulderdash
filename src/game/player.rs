@@ -42,7 +42,7 @@ impl Collidable for Player {
                             _ => return direction.edit_position(self.position),
                         },
                         Some(Field::Wall(_)) => return self.position,
-                        Some(Field::Exit) | Some(Field::Empty) | None => {
+                        Some(Field::Exit) | Some(Field::Empty) | Some(Field::Dirt) | None => {
                             return direction.edit_position(self.position)
                         }
                     }

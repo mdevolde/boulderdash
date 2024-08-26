@@ -4,7 +4,6 @@ pub struct Tile {
     x: i32,
     y: i32,
     field: Field,
-    visited: bool,
 }
 
 impl Tile {
@@ -25,6 +24,7 @@ impl Renderable for Tile {
         match &self.get_object_on() {
             Some(Field::Entity(entity)) => entity.render(),
             Some(Field::Wall(wall)) => wall.render(),
+            Some(Field::Dirt) => println!("Dirt tile at ({}, {})", self.x, self.y), // Temporary implementation
             Some(Field::Exit) => println!("Exit tile at ({}, {})", self.x, self.y), // Temporary implementation
             Some(Field::Empty) | None => println!("Empty tile at ({}, {})", self.x, self.y), // Temporary implementation
         }

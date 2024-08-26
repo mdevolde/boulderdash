@@ -45,8 +45,14 @@ impl Entity for Diamond {
 }
 
 impl Fallable for Diamond { // Temporary implementation
-    fn fall(&mut self) {
-        self.position.1 += 1;
+    fn fall(&mut self, grid: &Grid) {
+        if let Some(movement) = self.is_falling(grid) {
+            let (x, y) = movement.edit_position(self.position);
+            self.move_to(x, y);
+            self.falling_since += 1;
+        } else {
+            self.falling_since = 0;
+        }
     }
 
     fn is_falling(&self, grid: &Grid) -> Option<Movement> {
@@ -60,7 +66,7 @@ impl Fallable for Diamond { // Temporary implementation
                             None
                         }
                     },
-                    Some(Field::Wall(_)) | Some(Field::Exit) => None,
+                    Some(Field::Wall(_)) | Some(Field::Dirt) | Some(Field::Exit) => None,
                     Some(Field::Empty) | None => Some(movement),
                 },
                 None => None,

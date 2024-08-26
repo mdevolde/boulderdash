@@ -6,9 +6,28 @@ pub struct Grid {
     width: i32,
     height: i32,
     tiles: Vec<Vec<Tile>>,
+    player_position: (i32, i32),
 }
 
 impl Grid {
+    pub fn new(width: i32, height: i32) -> Self {
+        let mut tiles = vec![];
+        for y in 0..height {
+            let mut row = vec![];
+            for x in 0..width {
+                row.push(Tile::new(x, y, Field::Empty)); //TODO: Implement the level loading with file reading
+            }
+            tiles.push(row);
+        }
+        let player_position = (width / 2, height / 2); // Temporary implementation
+        Grid {
+            width,
+            height,
+            tiles,
+            player_position,
+        }
+    }
+
     pub fn get_tile(&self, x: i32, y: i32) -> Option<&Tile> {
         self.tiles.get(y as usize).and_then(|row| row.get(x as usize))
     }
@@ -39,6 +58,10 @@ impl Grid {
             }
         }
         concerned_tiles
+    }
+
+    pub fn get_player_position(&self) -> (i32, i32) {
+        self.player_position
     }
 }
 

@@ -7,6 +7,14 @@ pub struct Tile {
 }
 
 impl Tile {
+    pub fn new(x: i32, y: i32, field: Field) -> Self {
+        Tile {
+            x,
+            y,
+            field,
+        }
+    }
+
     pub fn get_position(&self) -> (i32, i32) {
         (self.x, self.y)
     }

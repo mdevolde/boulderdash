@@ -1,15 +1,66 @@
 use std::any::Any;
 
+use super::diamond::Diamond;
 use super::enums::field::Field;
 use super::grid::Grid;
 use super::interfaces::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
 use super::enums::movement::Movement;
+use super::rock::Rock;
 
 #[derive(Clone)]
 pub struct Player {
     position: (i32, i32),
     doing: Movement,
     pushing: bool,
+}
+
+impl Player {
+    pub fn new(x: i32, y: i32) -> Self {
+        Player {
+            position: (x, y),
+            doing: Movement::Afk,
+            pushing: false,
+        }
+    }
+
+    pub fn update(&mut self, grid: &mut Grid) {
+        let (x, y) = self.position;
+        let (fx, fy) = self.get_future_position(&grid);
+        if let Some(tile) = grid.get_tile(fx, fy) {
+            match tile.get_object_on() {
+                Some(Field::Entity(entity)) => {
+                    if entity.get_type().as_str() == "Rock" {
+                        let mut rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
+                        self.push_rock(grid, &mut rock);
+                    } else {
+                        self.move_to(x, y, fx, fy, grid)
+                    }
+                },
+                Some(Field::Exit) => {
+                    if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
+                        println!("You won!"); // Temporary implementation
+                    }
+                },
+                Some(Field::Wall(_)) => (),
+                _ => self.move_to(x, y, fx, fy, grid),
+            };
+        };
+    }
+
+    pub fn push_rock(&mut self, grid: &mut Grid, rock: &mut Rock) {
+        if self.pushing {
+            let (rx, ry) = rock.get_position();
+            if let Some(tile) = grid.get_nearest_tile(rx, ry, self.doing) {
+                if tile.get_object_on().is_none() {
+                    let (frx, fry) = self.doing.edit_position((rx, ry));
+                    rock.move_to(rx, ry, frx, fry, grid);
+                    self.move_to(self.position.0, self.position.1, rx, ry, grid);
+                }
+            }
+        } else {
+            self.pushing = true;
+        }
+    }
 }
 
 impl Movable for Player {
@@ -19,14 +70,13 @@ impl Movable for Player {
         }
         if let Some(new_tile) = grid.get_mut_tile(nx, ny) {
             self.position = (nx, ny);
-            // TODO: Implement the pushing logic, the diamond collection and the exit logic
             new_tile.set_object_on(Field::Entity(Box::new(self.clone())));
         }
     }
 }
 
 impl Collidable for Player {
-    fn check_collision(&self, other: &dyn Collidable, grid: Grid) -> bool {
+    fn check_collision(&self, other: &dyn Collidable, grid: &Grid) -> bool {
         self.get_future_position(&grid) == other.get_position()
     }
 

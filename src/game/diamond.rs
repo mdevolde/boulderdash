@@ -2,12 +2,33 @@ use std::any::Any;
 
 use crate::game::tile::Tile;
 
-use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
+use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
 
 #[derive(Clone)]
 pub struct Diamond {
     position: (i32, i32),
     falling_since: i32,
+}
+
+impl Diamond {
+    pub fn new(x: i32, y: i32) -> Self {
+        Diamond {
+            position: (x, y),
+            falling_since: 0,
+        }
+    }
+
+    pub fn update(&mut self, grid: &mut Grid) {
+        let (px, py) = grid.get_player_position();
+        let player_tile = grid.get_tile(px, py).unwrap();
+        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
+            let player = entity.as_any().downcast_ref::<Player>().unwrap();
+            if self.check_collision(player, grid) {
+                //TODO: Implement the explosion rendering
+            }
+        }
+        self.fall(grid);
+    }
 }
 
 impl Movable for Diamond {
@@ -23,8 +44,8 @@ impl Movable for Diamond {
 }
 
 impl Collidable for Diamond {
-    fn check_collision(&self, other: &dyn Collidable, grid: Grid) -> bool {
-        self.get_future_position(&grid) == other.get_position()
+    fn check_collision(&self, other: &dyn Collidable, grid: &Grid) -> bool {
+        self.get_future_position(grid) == other.get_position()
     }
 
     fn get_position(&self) -> (i32, i32) {

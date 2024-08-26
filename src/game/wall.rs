@@ -4,8 +4,16 @@ pub struct Wall {
     position: (i32, i32),
 }
 
+impl Wall {
+    pub fn new(x: i32, y: i32) -> Self {
+        Wall {
+            position: (x, y),
+        }
+    }
+}
+
 impl Collidable for Wall {
-    fn check_collision(&self, _: &dyn Collidable, _: Grid) -> bool {
+    fn check_collision(&self, _: &dyn Collidable, _: &Grid) -> bool {
         false
     }
 

@@ -17,6 +17,10 @@ impl Tile {
             _ => None,
         }
     }
+
+    pub fn set_object_on(&mut self, field: Field) {
+        self.field = field;
+    }
 }
 
 impl Renderable for Tile {

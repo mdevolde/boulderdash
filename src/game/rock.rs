@@ -2,6 +2,7 @@ use crate::game::tile::Tile;
 
 use super::{enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
 
+#[derive(Clone)]
 pub struct Rock {
     position: (i32, i32),
     falling_since: i32,
@@ -28,8 +29,14 @@ impl Rock {
 }
 
 impl Movable for Rock {
-    fn move_to(&mut self, x: i32, y: i32) {
-        self.position = (x, y);
+    fn move_to(&mut self, ax: i32, ay: i32, nx: i32, ny: i32, grid: &mut Grid) {
+        if let Some(actual_tile) = grid.get_mut_tile(ax, ay) {
+            actual_tile.set_object_on(Field::Empty);
+        }
+        if let Some(new_tile) = grid.get_mut_tile(nx, ny) {
+            self.position = (nx, ny);
+            new_tile.set_object_on(Field::Entity(Box::new(self.clone())));
+        }
     }
 }
 
@@ -64,10 +71,16 @@ impl Entity for Rock {
 }
 
 impl Fallable for Rock {
-    fn fall(&mut self, grid: &Grid) {
+    fn fall(&mut self, grid: &mut Grid) {
         if let Some(movement) = self.is_falling(grid) {
             let (x, y) = movement.edit_position(self.position);
-            self.move_to(x, y);
+            self.move_to(
+                self.position.0,
+                self.position.1,
+                x,
+                y,
+                grid,
+            );
             self.falling_since += 1;
         } else {
             self.falling_since = 0;

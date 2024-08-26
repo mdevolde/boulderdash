@@ -3,6 +3,7 @@ use super::grid::Grid;
 use super::interfaces::{collidable::Collidable, entity::Entity, movable::Movable, renderable::Renderable};
 use super::enums::movement::Movement;
 
+#[derive(Clone)]
 pub struct Player {
     position: (i32, i32),
     alive: bool,
@@ -11,8 +12,15 @@ pub struct Player {
 }
 
 impl Movable for Player {
-    fn move_to(&mut self, x: i32, y: i32) {
-        self.position = (x, y);
+    fn move_to(&mut self, ax: i32, ay: i32, nx: i32, ny: i32, grid: &mut Grid) {
+        if let Some(actual_tile) = grid.get_mut_tile(ax, ay) {
+            actual_tile.set_object_on(Field::Empty);
+        }
+        if let Some(new_tile) = grid.get_mut_tile(nx, ny) {
+            self.position = (nx, ny);
+            // TODO: Implement the pushing logic, the diamond collection and the exit logic
+            new_tile.set_object_on(Field::Entity(Box::new(self.clone())));
+        }
     }
 }
 

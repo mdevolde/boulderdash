@@ -3,12 +3,16 @@ use super::{enums::movement::Movement, interfaces::renderable::Renderable, tile:
 pub struct Grid {
     width: i32,
     height: i32,
-    tiles: Vec<Tile>,
+    tiles: Vec<Vec<Tile>>,
 }
 
 impl Grid {
     pub fn get_tile(&self, x: i32, y: i32) -> Option<&Tile> {
-        self.tiles.iter().find(|tile| tile.get_position() == (x, y))
+        self.tiles.get(y as usize).and_then(|row| row.get(x as usize))
+    }
+
+    pub fn get_mut_tile(&mut self, x: i32, y: i32) -> Option<&mut Tile> {
+        self.tiles.get_mut(y as usize).and_then(|row| row.get_mut(x as usize))
     }
 
     pub fn get_nearest_tile(&self, x: i32, y: i32, direction: Movement) -> Option<&Tile> {
@@ -24,8 +28,13 @@ impl Grid {
 
 impl Renderable for Grid {
     fn render(&self) {
-        for tile in &self.tiles {
-            tile.render();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                match self.get_tile(x, y) {
+                    Some(tile) => tile.render(),
+                    None => println!("No tile at ({}, {})", x, y), // Temporary implementation
+                }
+            }
         }
     }
 }

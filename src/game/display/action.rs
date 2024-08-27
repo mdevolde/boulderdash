@@ -2,7 +2,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 use super::{super::{enums::field::Field, grid::Grid, interfaces::renderable::Renderable}, zone::Zone};
 
 
-
+#[derive(Debug)]
 pub struct Action {
     coordinates: (i32, i32),
     field: Field,

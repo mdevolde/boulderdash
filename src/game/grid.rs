@@ -1,8 +1,8 @@
 use std::{any::Any, rc::Rc};
 
-use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+use web_sys::{console, CanvasRenderingContext2d, HtmlImageElement};
 
-use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall, display::zone::Zone};
+use super::{diamond, display::{action::Action, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
@@ -14,6 +14,14 @@ pub struct Grid {
 impl Grid {
     pub fn new(level_text: &str, canvas_sx: i32, canvas_sy: i32) -> Self {
         Grid::from_str(&level_text, canvas_sx, canvas_sy)
+    }
+
+    pub fn default() -> Self {
+        Grid {
+            tiles: vec![],
+            player_position: (0, 0),
+            zones: vec![]
+        }
     }
 
     pub fn from_str(input: &str, canvas_sx: i32, canvas_sy: i32) -> Self {
@@ -69,6 +77,9 @@ impl Grid {
         
         if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
             actions.extend(player_tile.update(self));
+            // TODO: remove this debug line
+            console::log_1(&format!("Player actions: {:?}", player_tile.update(self)).into());
+            console::log_1(&format!("Player tile: {:?}", player_tile).into());
         }
 
         for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
@@ -79,6 +90,24 @@ impl Grid {
             action.apply(self);
             if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
                 action.render(self, context, sprites, zone);
+            }
+        }
+        if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
+            self.player_position = player.get_position();
+        }
+    }
+
+    pub fn set_player_doing(&mut self, movement: Movement) {
+        let (x, y) = self.player_position;
+        if let Some(player_tile) = self.get_tile(x, y) {
+            if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
+                if let Some(player) = entity.as_any().downcast_ref::<Player>() {
+                    let mut clone_player = player.clone();
+                    clone_player.set_movement(movement);
+                    let field = Field::Entity(Rc::new(clone_player));
+                    let action = Action::new((x, y), field);
+                    action.apply(self);
+                }
             }
         }
     }

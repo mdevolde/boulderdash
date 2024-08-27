@@ -43,7 +43,9 @@ impl Movable for Rock {
     fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
         actions.push(Action::new((ax, ay), Field::Empty));
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self.clone()))));
+        let mut self_clone = self.clone();
+        self_clone.position = (nx, ny);
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone))));
         actions
     }
 }

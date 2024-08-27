@@ -13,7 +13,7 @@ use super::enums::movement::Movement;
 use super::rock::Rock;
 use super::display::zone::Zone;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Player {
     position: (i32, i32),
     doing: Movement,
@@ -27,6 +27,16 @@ impl Player {
             doing: Movement::Afk,
             pushing: false,
         }
+    }
+
+    pub fn set_movement(&mut self, movement: Movement) {
+        self.doing = movement;
+    }
+
+    pub fn canced_push(&self) -> Action {
+        let mut self_clone = self.clone();
+        self_clone.pushing = false;
+        Action::new(self.position, Field::Entity(Rc::new(self_clone)))
     }
 
     pub fn push_rock(&self, grid: &Grid, rock: &Rock) -> Vec<Action> {
@@ -43,6 +53,7 @@ impl Player {
         } else if self.doing == Movement::MoveLeft || self.doing == Movement::MoveRight {
             let mut self_copy = self.clone();
             self_copy.pushing = true;
+            self_copy.doing = Movement::Afk;
             actions.push(Action::new(self.position, Field::Entity(Rc::new(self_copy))));
         };
         actions
@@ -53,7 +64,11 @@ impl Movable for Player {
     fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
         actions.push(Action::new((ax, ay), Field::Empty));
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self.clone()))));
+        let mut self_clone = self.clone();
+        self_clone.doing = Movement::Afk;
+        self_clone.position = (nx, ny);
+        self_clone.pushing = false;
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone))));
         actions
     }
 }
@@ -123,13 +138,14 @@ impl Entity for Player {
         let mut actions = Vec::new();
         let (x, y) = self.position;
         let (fx, fy) = self.get_future_position(&grid);
+        
         if let Some(tile) = grid.get_tile(fx, fy) {
             match tile.get_object_on() {
                 Some(Field::Entity(entity)) => {
                     if entity.get_type().as_str() == "Rock" {
                         let rock = entity.as_any().downcast_ref::<Rock>().expect("Downcast failed for a Rock").clone();
                         actions.extend(self.push_rock(grid, &rock));
-                    } else {
+                    } else if entity.get_type().as_str() == "Diamond" {
                         actions.extend(self.move_to(x, y, fx, fy));
                     };
                 },
@@ -138,7 +154,7 @@ impl Entity for Player {
                         println!("You won!"); // Temporary implementation
                     };
                 },
-                Some(Field::Wall(_)) => (),
+                Some(Field::Wall(_)) => actions.push(self.canced_push()),
                 _ => actions.extend(self.move_to(x, y, fx, fy)),
             };
         };

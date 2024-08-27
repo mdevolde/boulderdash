@@ -1,4 +1,6 @@
-use super::{grid::Grid, interfaces::{collidable::Collidable, renderable::Renderable}};
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
+use super::{grid::Grid, interfaces::{collidable::Collidable, renderable::Renderable}, display::zone::Zone};
 
 #[derive(Clone, Debug)]
 pub struct Wall {
@@ -28,7 +30,16 @@ impl Collidable for Wall {
 }
 
 impl Renderable for Wall {
-    fn render(&self) {
-        println!("Wall at {:?}", self.position); // Temporary implementation
+    fn render(&self, _: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+        let (dx, dy) = zone.get_patched_position(self.position);
+        let wall_x_in_sprite = (1 * 32) as f64;
+        let wall_y_in_sprite = (6 * 32) as f64;
+        let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+            &sprites, 
+            wall_x_in_sprite, wall_y_in_sprite, 
+            32.0, 32.0, 
+            dx, dy, 
+            32.0, 32.0,
+        );
     }
 }

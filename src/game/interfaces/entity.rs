@@ -1,7 +1,7 @@
 use std::fmt;
 use std::any::Any;
 
-use crate::game::{action::Action, grid::Grid};
+use crate::game::{display::action::Action, grid::Grid};
 
 use super::{collidable::Collidable, movable::Movable, renderable::Renderable};
 

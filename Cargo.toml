@@ -5,10 +5,11 @@ edition = "2021"
 
 [dependencies]
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.5"
 lazy_static = "1.4"
-web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "HtmlImageElement"] }
+web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "HtmlImageElement", "Window", "Document", "HtmlCanvasElement", "Response"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

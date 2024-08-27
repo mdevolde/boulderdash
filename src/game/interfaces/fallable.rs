@@ -1,4 +1,4 @@
-use crate::game::{action::Action, grid::Grid};
+use crate::game::{display::action::Action, grid::Grid};
 
 use super::super::enums::movement::Movement;
 

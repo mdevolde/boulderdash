@@ -1,33 +1,33 @@
 use std::{any::Any, rc::Rc};
 
-use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
+use super::{diamond, enums::{field::Field, movement::Movement}, interfaces::{entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall, display::zone::Zone};
 
 #[derive(Debug)]
 pub struct Grid {
-    width: i32,
-    height: i32,
     tiles: Vec<Vec<Tile>>,
     player_position: (i32, i32),
+    zones: Vec<Zone>,
 }
 
 impl Grid {
-    pub fn new(file_path: &str) -> Self {
-        let file = std::fs::read_to_string(file_path).expect("Could not read file");
-        Grid::from_str(&file)
+    pub fn new(level_text: &str, canvas_sx: i32, canvas_sy: i32) -> Self {
+        Grid::from_str(&level_text, canvas_sx, canvas_sy)
     }
 
-    pub fn from_str(input: &str) -> Self {
+    pub fn from_str(input: &str, canvas_sx: i32, canvas_sy: i32) -> Self {
         let mut lines = input.lines();
 
-        let size_line = lines.next().unwrap();
+        let size_line = lines.next().expect("No size line found");
         let mut size_iter = size_line.split_whitespace();
-        let height: i32 = size_iter.next().unwrap().parse().unwrap();
-        let width: i32 = size_iter.next().unwrap().parse().unwrap();
+        let height: i32 = size_iter.next().expect("Missing part in height").parse().expect("Could not parse height");
+        let width: i32 = size_iter.next().expect("Missing part in width").parse().expect("Could not parse width");
 
-        let player_line = lines.next().unwrap();
+        let player_line = lines.next().expect("No player line found");
         let mut player_iter = player_line.split_whitespace();
-        let player_x: i32 = player_iter.next().unwrap().parse().unwrap();
-        let player_y: i32 = player_iter.next().unwrap().parse().unwrap();
+        let player_x: i32 = player_iter.next().expect("Missing part in x ").parse().expect("Could not parse player x");
+        let player_y: i32 = player_iter.next().expect("Missing part in y").parse().expect("Could not parse player y");
 
         lines.next();
 
@@ -40,7 +40,7 @@ impl Grid {
                         'W' => Field::Wall(Wall::new(x as i32, y as i32)),
                         'r' => Field::Entity(Rc::new(Rock::new(x as i32, y as i32))),
                         'd' => Field::Entity(Rc::new(diamond::Diamond::new(x as i32, y as i32))),
-                        '.' => Field::Empty,
+                        '.' => Field::Dirt,
                         'P' => Field::Entity(Rc::new(Player::new(x as i32, y as i32))),
                         'X' => Field::Exit,
                         _ => Field::Empty,
@@ -51,23 +51,25 @@ impl Grid {
             tiles.push(row);
         }
 
+        let zones = Zone::from_map(width, height, canvas_sx, canvas_sy);
+
         Grid {
-            width,
-            height,
             tiles,
             player_position: (player_x, player_y),
+            zones
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
         let mut actions = vec![];
 
         for rock in self.get_tiles_with_entity::<Rock>() {
             actions.extend(rock.update(self));
         }
         
-        let player_tile = self.get_tile(self.player_position.0, self.player_position.1).unwrap();
-        actions.extend(player_tile.update(self));
+        if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
+            actions.extend(player_tile.update(self));
+        }
 
         for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
             actions.extend(diamond.update(self));
@@ -75,6 +77,9 @@ impl Grid {
 
         for action in actions {
             action.apply(self);
+            if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
+                action.render(self, context, sprites, zone);
+            }
         }
     }
 
@@ -113,17 +118,10 @@ impl Grid {
     pub fn get_player_position(&self) -> (i32, i32) {
         self.player_position
     }
-}
 
-impl Renderable for Grid {
-    fn render(&self) {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                match self.get_tile(x, y) {
-                    Some(tile) => tile.render(),
-                    None => println!("No tile at ({}, {})", x, y), // Temporary implementation
-                }
-            }
+    pub fn render_player_zone(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+        if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
+            zone.render(self, context, sprites, &zone);
         }
     }
 }

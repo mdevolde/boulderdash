@@ -1,8 +1,10 @@
 use std::{any::Any, rc::Rc};
 
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
 use crate::game::tile::Tile;
 
-use super::{action::Action, enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, player::Player};
+use super::{display::action::Action, enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, display::zone::Zone};
 
 #[derive(Clone)]
 pub struct Diamond {
@@ -47,8 +49,17 @@ impl Collidable for Diamond {
 }
 
 impl Renderable for Diamond {
-    fn render(&self) {
-        println!("Diamond at {:?}", self.position); // Temporary implementation
+    fn render(&self, _: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+        let (dx, dy) = zone.get_patched_position(self.position);
+        let diamond_x_in_sprite = 0.0;
+        let diamond_y_in_sprite = (10 * 32) as f64;
+        let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+            &sprites, 
+            diamond_x_in_sprite, diamond_y_in_sprite, 
+            32.0, 32.0, 
+            dx, dy, 
+            32.0, 32.0,
+        );
     }
 }
 
@@ -63,14 +74,6 @@ impl Entity for Diamond {
 
     fn update(&self, grid: &Grid) -> Vec<Action> {
         let mut actions = Vec::new();
-        let (px, py) = grid.get_player_position();
-        let player_tile = grid.get_tile(px, py).unwrap();
-        if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
-            let player = entity.as_any().downcast_ref::<Player>().unwrap();
-            if self.check_collision(player, grid) {
-                //TODO: Implement the explosion rendering
-            }
-        }
         actions.extend(self.fall(grid));
         actions
     }

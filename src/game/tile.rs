@@ -1,4 +1,5 @@
-use super::{action::Action, enums::field::Field, grid::Grid, interfaces::renderable::Renderable};
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+use super::{display::action::Action, enums::field::Field, grid::Grid, interfaces::renderable::Renderable, display::zone::Zone};
 
 #[derive(Debug)]
 pub struct Tile {
@@ -31,24 +32,36 @@ impl Tile {
     
     pub fn get_object_on(&self) -> Option<&Field> {
         match &self.field {
-            Field::Entity(_) | Field::Wall(_) | Field::Exit => Some(&self.field),
-            _ => None,
+            Field::Entity(_) | Field::Wall(_) | Field::Dirt | Field::Exit => Some(&self.field),
+            Field::Empty => None,
         }
     }
 
     pub fn set_object_on(&mut self, field: Field) {
         self.field = field;
     }
+
+    pub fn render_non_obj(&self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone, sx: f64, sy: f64) {
+        let (dx, dy) = zone.get_patched_position((self.x, self.y));
+        let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+            &sprites, 
+            sx, sy, 
+            32.0, 32.0, 
+            dx, dy, 
+            32.0, 32.0,
+        );
+    }
 }
 
 impl Renderable for Tile {
-    fn render(&self) {
+    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
         match &self.get_object_on() {
-            Some(Field::Entity(entity)) => entity.render(),
-            Some(Field::Wall(wall)) => wall.render(),
-            Some(Field::Dirt) => println!("Dirt tile at ({}, {})", self.x, self.y), // Temporary implementation
-            Some(Field::Exit) => println!("Exit tile at ({}, {})", self.x, self.y), // Temporary implementation
-            Some(Field::Empty) | None => println!("Empty tile at ({}, {})", self.x, self.y), // Temporary implementation
-        }
+            Some(Field::Entity(entity)) => entity.render(grid, context, sprites, zone),
+            Some(Field::Wall(wall)) => wall.render(grid, context, sprites, zone),
+            Some(Field::Dirt) => self.render_non_obj(context, sprites, zone, (1 * 32) as f64, (7 * 32) as f64),
+            
+            Some(Field::Exit) => self.render_non_obj(context, sprites, zone, (2 * 32) as f64, (6 * 32) as f64),
+            Some(Field::Empty) | None => self.render_non_obj(context, sprites, zone, (0 * 32) as f64, (6 * 32) as f64),
+        };
     }
 }

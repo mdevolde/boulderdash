@@ -1,7 +1,9 @@
 use std::any::Any;
 use std::rc::Rc;
 
-use super::action::Action;
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
+use super::display::action::Action;
 use super::diamond::Diamond;
 use super::enums::field::Field;
 use super::grid::Grid;
@@ -9,6 +11,7 @@ use super::interfaces::entity::Entity;
 use super::interfaces::{collidable::Collidable, movable::Movable, renderable::Renderable};
 use super::enums::movement::Movement;
 use super::rock::Rock;
+use super::display::zone::Zone;
 
 #[derive(Clone)]
 pub struct Player {
@@ -95,8 +98,15 @@ impl Collidable for Player {
 }
 
 impl Renderable for Player {
-    fn render(&self) {
-        println!("Player at {:?}", self.position); // Temporary implementation
+    fn render(&self, _: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+        let (dx, dy) = zone.get_patched_position(self.position);
+        let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+            &sprites, 
+            0.0, 0.0, 
+            32.0, 32.0, 
+            dx, dy, 
+            32.0, 32.0,
+        );
     } 
 }
 
@@ -117,7 +127,7 @@ impl Entity for Player {
             match tile.get_object_on() {
                 Some(Field::Entity(entity)) => {
                     if entity.get_type().as_str() == "Rock" {
-                        let rock = entity.as_any().downcast_ref::<Rock>().unwrap().clone();
+                        let rock = entity.as_any().downcast_ref::<Rock>().expect("Downcast failed for a Rock").clone();
                         actions.extend(self.push_rock(grid, &rock));
                     } else {
                         actions.extend(self.move_to(x, y, fx, fy));

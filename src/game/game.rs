@@ -1,35 +1,38 @@
-use super::{grid::Grid, interfaces::renderable::Renderable};
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
+use super::grid::Grid;
 
 pub struct Game {
     grid: Grid,
     score: i32,
     level: u32,
+    context: CanvasRenderingContext2d,
+    sprites: HtmlImageElement,
+    levels: Vec<String>,
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(context: CanvasRenderingContext2d, sprites: HtmlImageElement, levels: Vec<String>) -> Self {
         let level = 1;
-        let level_file = Game::get_level_file(level as i32);
-        let grid = Grid::new(&level_file);
+        let level_text = Game::get_level_text(level, &levels);
+        let canvas_width = context.canvas().expect("No canvas found").width();
+        let canvas_height = context.canvas().expect("No canvas found").height();
+        let grid = Grid::new(&level_text, canvas_width as i32, canvas_height as i32);
         Game {
             grid,
             score: 0,
-            level,
+            level: level as u32,
+            context,
+            sprites,
+            levels,
         }
     }
 
-    pub fn get_level_file(level: i32) -> String {
-        format!("./static/maps/level_{}.bbcff", level)
+    pub fn get_level_text(level: usize, levels: &Vec<String>) -> String {
+        levels[level-1].clone()
     }
 
-    pub fn get_grid(&self) -> &Grid {
-        &self.grid
-    }
-}
-
-impl Renderable for Game {
-    fn render(&self) {
-        self.grid.render();
-        // self.player.render(); Not neccessary because the player is rendered by the grid
+    pub fn update(&mut self) {
+        self.grid.render_player_zone(&mut self.context, &self.sprites)
     }
 }

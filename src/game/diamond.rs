@@ -83,7 +83,7 @@ impl Entity for Diamond {
     }
 }
 
-impl Fallable for Diamond { // Temporary implementation
+impl Fallable for Diamond {
     fn fall(&self, grid: &Grid) -> Vec<Action> {
         let mut actions = Vec::new();
         let mut self_clone = self.clone();

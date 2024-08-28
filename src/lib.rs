@@ -87,10 +87,10 @@ impl Game {
     #[wasm_bindgen]
     pub fn key_down(&mut self, key: String) {
         match key.as_str() {
-            "ArrowUp" => self.grid.set_player_doing(Movement::MoveUp, true),
-            "ArrowDown" => self.grid.set_player_doing(Movement::MoveDown, true),
-            "ArrowLeft" => self.grid.set_player_doing(Movement::MoveLeft, true),
-            "ArrowRight" => self.grid.set_player_doing(Movement::MoveRight, true),
+            "ArrowUp" => self.grid.set_player_doing(Movement::MoveUp),
+            "ArrowDown" => self.grid.set_player_doing(Movement::MoveDown),
+            "ArrowLeft" => self.grid.set_player_doing(Movement::MoveLeft),
+            "ArrowRight" => self.grid.set_player_doing(Movement::MoveRight),
             _ => {}
         }
     }

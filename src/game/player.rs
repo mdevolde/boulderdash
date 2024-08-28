@@ -33,9 +33,12 @@ impl Player {
         self.doing = movement;
     }
 
-    pub fn canced_push(&self) -> Action {
+    pub fn cancel_push(&self, afk: bool) -> Action {
         let mut self_clone = self.clone();
         self_clone.pushing = None;
+        if afk {
+            self_clone.doing = Movement::Afk;
+        };
         Action::new(self.position, Field::Entity(Rc::new(self_clone)))
     }
 
@@ -58,6 +61,23 @@ impl Player {
         };
         actions
     }
+
+    pub fn get_frame(&self, current_frame: i32, action: Movement) -> (f64, f64) {
+        let row = match action {
+            Movement::MoveLeft => 4.0,
+            Movement::MoveRight => 5.0,
+            _ => 3.0,
+        };
+    
+        let column = if (0..=7).contains(&current_frame) {
+            current_frame as f64
+        } else {
+            0.0
+        };
+    
+        (column * 32.0, row * 32.0)
+    }
+    
 }
 
 impl Movable for Player {
@@ -109,11 +129,20 @@ impl Collidable for Player {
 }
 
 impl Renderable for Player {
-    fn render(&self, _: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
         let (dx, dy) = zone.get_patched_position(self.position);
+        
+        let direction: Movement;
+        if grid.get_last_frame_direction() == Movement::Afk {
+            direction = Movement::Afk;
+        } else {
+            direction = grid.get_last_frame_side_direction();
+        }
+
+        let (sx, sy) = self.get_frame(grid.get_frame(), direction);
         let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
             &sprites, 
-            0.0, 0.0, 
+            sx, sy, 
             32.0, 32.0, 
             dx, dy, 
             32.0, 32.0,
@@ -143,14 +172,16 @@ impl Entity for Player {
                         actions.extend(self.push_rock(grid, &rock));
                     } else if entity.get_type().as_str() == "Diamond" {
                         actions.extend(self.move_to(x, y, fx, fy));
+                    } else {
+                        actions.push(self.cancel_push(true));
                     };
                 },
                 Some(Field::Exit) => {
                     if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
-                        println!("You won!"); // Temporary implementation
+                        actions.extend(self.move_to(x, y, fx, fy));
                     };
                 },
-                Some(Field::Wall(_)) => actions.push(self.canced_push()),
+                Some(Field::Wall(_)) => actions.push(self.cancel_push(false)),
                 _ => actions.extend(self.move_to(x, y, fx, fy)),
             };
         };

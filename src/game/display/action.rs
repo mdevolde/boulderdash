@@ -21,6 +21,10 @@ impl Action {
             tile.set_object_on(self.field.clone());
         }
     }
+
+    pub fn get_position(&self) -> (i32, i32) {
+        self.coordinates
+    }
 }
 
 impl Renderable for Action {

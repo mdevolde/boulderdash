@@ -19,6 +19,16 @@ impl Diamond {
             falling_since: 0,
         }
     }
+
+    pub fn get_frame(&self, current_frame: i32) -> (f64, f64) {
+        let frame_x = if (0..=7).contains(&current_frame) {
+            current_frame as f64
+        } else {
+            0.0
+        };
+        
+        (frame_x * 32.0, 10.0 * 32.0)
+    }
 }
 
 impl Movable for Diamond {
@@ -47,10 +57,10 @@ impl Collidable for Diamond {
 }
 
 impl Renderable for Diamond {
-    fn render(&self, _: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
         let (dx, dy) = zone.get_patched_position(self.position);
-        let diamond_x_in_sprite = 0.0;
-        let diamond_y_in_sprite = (10 * 32) as f64;
+        let (diamond_x_in_sprite, diamond_y_in_sprite) = self.get_frame(grid.get_frame());
+        
         let _ = context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
             &sprites, 
             diamond_x_in_sprite, diamond_y_in_sprite, 

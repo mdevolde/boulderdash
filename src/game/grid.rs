@@ -9,6 +9,9 @@ pub struct Grid {
     tiles: Vec<Vec<Tile>>,
     player_position: (i32, i32),
     zones: Vec<Zone>,
+    frame: i32,
+    last_frame_direction: Movement,
+    last_frame_side_direction: Movement,
 }
 
 impl Grid {
@@ -20,7 +23,10 @@ impl Grid {
         Grid {
             tiles: vec![],
             player_position: (0, 0),
-            zones: vec![]
+            zones: vec![],
+            frame: 0,
+            last_frame_direction: Movement::Afk,
+            last_frame_side_direction: Movement::Afk,
         }
     }
 
@@ -64,7 +70,10 @@ impl Grid {
         Grid {
             tiles,
             player_position: (player_x, player_y),
-            zones
+            zones,
+            frame: 0,
+            last_frame_direction: Movement::Afk,
+            last_frame_side_direction: Movement::Afk,
         }
     }
 
@@ -81,11 +90,13 @@ impl Grid {
         if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
             actions.extend(player_tile.update(self));
         }
-        if actions.len() == 0 {
-            self.set_player_doing(Movement::Afk, false)
-        } else {
-            self.apply_actions(actions, context, sprites);
+        if let Some(action) = actions.get(0) {
+            if action.get_position() == self.player_position && actions.len() == 1 {
+                self.last_frame_direction = Movement::Afk;
+            }
         }
+        self.apply_actions(actions, context, sprites);
+    
         if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
             self.player_position = player.get_position();
         }
@@ -99,6 +110,12 @@ impl Grid {
             actions.extend(diamond.update(self));
         }
         self.apply_actions(actions, context, sprites);
+        
+        if self.frame == 7 {
+            self.frame = 0;
+        } else {
+            self.frame += 1;
+        }
     }
 
     pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
@@ -110,7 +127,14 @@ impl Grid {
         }
     }
 
-    pub fn set_player_doing(&mut self, movement: Movement, pushing: bool) {
+    pub fn set_player_doing(&mut self, movement: Movement) {
+        if movement == Movement::MoveLeft || movement == Movement::MoveRight {
+            self.last_frame_direction = movement;
+            self.last_frame_side_direction = movement;
+        } else {
+            self.last_frame_direction = self.last_frame_side_direction;
+        }
+        
         let (x, y) = self.player_position;
         if let Some(player_tile) = self.get_tile(x, y) {
             if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
@@ -118,16 +142,22 @@ impl Grid {
                     let mut clone_player = player.clone();
                     clone_player.set_movement(movement);
                     let action: Action;
-                    if !pushing {
-                        action = clone_player.canced_push();
-                    } else {
-                        let field = Field::Entity(Rc::new(clone_player));
-                        action = Action::new((x, y), field);
-                    }
+                
+                    let field = Field::Entity(Rc::new(clone_player));
+                    action = Action::new((x, y), field);
+                    
                     action.apply(self);
                 }
             }
         }
+    }
+
+    pub fn get_last_frame_direction(&self) -> Movement {
+        self.last_frame_direction
+    }
+
+    pub fn get_last_frame_side_direction(&self) -> Movement {
+        self.last_frame_side_direction
     }
 
     pub fn get_tile(&self, x: i32, y: i32) -> Option<&Tile> {
@@ -160,6 +190,10 @@ impl Grid {
             }
         }
         concerned_tiles
+    }
+
+    pub fn get_frame(&self) -> i32 {
+        self.frame
     }
 
     pub fn get_player_position(&self) -> (i32, i32) {

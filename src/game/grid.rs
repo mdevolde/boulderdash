@@ -205,4 +205,19 @@ impl Grid {
             zone.render(self, context, sprites, &zone);
         }
     }
+
+    pub fn is_game_over(&self) -> bool {
+        self.get_tiles_with_entity::<Player>().len() == 0
+    }
+
+    pub fn is_level_completed(&self) -> bool {
+        for row in &self.tiles {
+            for tile in row {
+                if let Some(Field::Exit) = tile.get_object_on() {
+                    return false;
+                };
+            };
+        };
+        true
+    }
 }

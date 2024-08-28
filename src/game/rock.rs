@@ -33,10 +33,6 @@ impl Movable for Rock {
 }
 
 impl Collidable for Rock {
-    fn check_collision(&self, other: &dyn Collidable, grid: &Grid) -> bool {
-        self.get_future_position(&grid) == other.get_position()
-    }
-
     fn get_position(&self) -> (i32, i32) {
         self.position
     }
@@ -101,65 +97,51 @@ impl Fallable for Rock {
     }
 
     fn is_falling(&self, grid: &Grid) -> Option<Movement> {
-        fn can_move_to(tile: Option<&Tile>, movement: Movement, falling_since: i32, grid: &Grid, first: bool) -> Option<Movement> {
-            match tile {
-                Some(tile) => match tile.get_object_on() {
-                    Some(Field::Entity(entity)) => {
-                        if entity.get_type().as_str() == "Player" && falling_since > 0 && movement == Movement::MoveDown {
-                            Some(movement)
-                        } else {
-                            None
-                        }
-                    },
-                    Some(Field::Wall(_)) | Some(Field::Dirt) | Some(Field::Exit) => None,
-                    Some(Field::Empty) | None => {
-                        if !first || can_move_to(
-                            grid.get_nearest_tile(tile.get_position().0, tile.get_position().1, Movement::MoveDown),
-                            movement, falling_since+1, grid, false).is_some() {
-                                Some(movement)
-                        } else {
-                            None
-                        }
-                    },    
+        fn can_move_to(tile: Option<&Tile>, movement: Movement, falling_since: i32, grid: &Grid, depth: Option<u32>) -> Option<Movement> {
+            let tile = tile?;
+            match tile.get_object_on() {
+                Some(Field::Entity(entity)) => {
+                    if entity.get_type().as_str() == "Player" && falling_since > 0 && movement == Movement::MoveDown {
+                        return Some(movement);
+                    }
                 },
-                None => None,
+                Some(Field::Wall(_)) | Some(Field::Dirt) | Some(Field::Exit) => {
+                    return None;
+                },
+                Some(Field::Empty) | None => {
+                    if depth.map_or(true, |d| d > 0) || 
+                        can_move_to(
+                            grid.get_nearest_tile(tile.get_position().0, tile.get_position().1, Movement::MoveDown),
+                            movement, 
+                            falling_since, 
+                            grid, 
+                            Some(1)
+                        ).is_some() {
+                        return Some(movement);
+                    }
+                },
             }
+            None
         }
 
-        if let Some(movement) = can_move_to(
-            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveDown),
-            Movement::MoveDown,
-            self.falling_since,
-            grid,
-            false
-        ) {
-            return Some(movement);
-        }
-    
-        else if let Some(movement) = can_move_to(
-            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveDown),
-            Movement::MoveDown,
-            self.falling_since,
-            grid,
-            true
-        ) {
-            if self.is_fallable_near(grid) {
-                return Some(movement);
+        let movements = [
+        (Movement::MoveDown, None),
+        (Movement::MoveLeft, Some(0)),
+        (Movement::MoveRight, Some(0)),
+        ];
+        for &(movement, depth) in &movements {
+            if let Some(movement) = can_move_to(
+                grid.get_nearest_tile(self.position.0, self.position.1, movement),
+                movement,
+                self.falling_since,
+                grid,
+                depth,
+            ) {
+                if movement == Movement::MoveDown || self.is_fallable_near(grid) {
+                    return Some(movement);
+                }
             }
         }
-    
-        else if let Some(movement) = can_move_to(
-            grid.get_nearest_tile(self.position.0, self.position.1, Movement::MoveDown),
-            Movement::MoveDown,
-            self.falling_since,
-            grid,
-            true
-        ) {
-            if self.is_fallable_near(grid) {
-                return Some(movement);
-            }
-        }
-    
         None
     }
 

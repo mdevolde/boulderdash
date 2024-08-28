@@ -74,10 +74,6 @@ impl Movable for Player {
 }
 
 impl Collidable for Player {
-    fn check_collision(&self, other: &dyn Collidable, grid: &Grid) -> bool {
-        self.get_future_position(&grid) == other.get_position()
-    }
-
     fn get_position(&self) -> (i32, i32) {
         self.position
     }

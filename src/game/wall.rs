@@ -16,10 +16,6 @@ impl Wall {
 }
 
 impl Collidable for Wall {
-    fn check_collision(&self, _: &dyn Collidable, _: &Grid) -> bool {
-        false
-    }
-
     fn get_position(&self) -> (i32, i32) {
         self.position
     }

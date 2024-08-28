@@ -55,7 +55,7 @@ impl Renderable for Rock {
             &sprites, 
             rock_x_in_sprite, rock_y_in_sprite, 
             32.0, 32.0, 
-            dx, dy, 
+            dx, dy+32.0, 
             32.0, 32.0,
         );
     }

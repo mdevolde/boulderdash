@@ -50,7 +50,7 @@ impl Game {
 
         let level_text = Game::get_level_text(1, &js_levels).expect("There is no level 1");
         let canvas_width = context.canvas().expect("No canvas found").width();
-        let canvas_height = context.canvas().expect("No canvas found").height();
+        let canvas_height = context.canvas().expect("No canvas found").height() - 32;
         let mut grid = Grid::new(&level_text, canvas_width as i32, canvas_height as i32);
 
         grid.render_player_zone(&mut context, &sprites);

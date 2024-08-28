@@ -34,7 +34,7 @@ impl Renderable for Wall {
             &sprites, 
             wall_x_in_sprite, wall_y_in_sprite, 
             32.0, 32.0, 
-            dx, dy, 
+            dx, dy+32.0, 
             32.0, 32.0,
         );
     }

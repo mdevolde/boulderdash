@@ -144,7 +144,7 @@ impl Renderable for Player {
             &sprites, 
             sx, sy, 
             32.0, 32.0, 
-            dx, dy, 
+            dx, dy+32.0, 
             32.0, 32.0,
         );
     } 

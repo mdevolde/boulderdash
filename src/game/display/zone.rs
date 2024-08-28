@@ -101,6 +101,10 @@ impl Zone {
     pub fn get_ey(&self) -> i32 {
         self.end_y
     }
+
+    pub fn is_in_zone(&self, x: i32, y: i32) -> bool {
+        x >= self.start_x && x < self.end_x && y >= self.start_y && y < self.end_y
+    }
 }
 
 impl Renderable for Zone {

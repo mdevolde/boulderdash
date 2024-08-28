@@ -47,7 +47,7 @@ impl Tile {
             &sprites, 
             sx, sy, 
             32.0, 32.0, 
-            dx, dy, 
+            dx, dy+32.0, 
             32.0, 32.0,
         );
     }

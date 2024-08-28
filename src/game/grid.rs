@@ -2,12 +2,14 @@ use std::{any::Any, rc::Rc};
 
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
-use super::{diamond, display::{action::Action, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use super::{diamond, display::{action::Action, overlay::Overlay, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
     tiles: Vec<Vec<Tile>>,
     player_position: (i32, i32),
+    diamonds_number: i32,
+    timer: f64,
     zones: Vec<Zone>,
     frame: i32,
     last_frame_direction: Movement,
@@ -23,6 +25,8 @@ impl Grid {
         Grid {
             tiles: vec![],
             player_position: (0, 0),
+            diamonds_number: 0,
+            timer: 0.0,
             zones: vec![],
             frame: 0,
             last_frame_direction: Movement::Afk,
@@ -42,6 +46,9 @@ impl Grid {
         let mut player_iter = player_line.split_whitespace();
         let player_x: i32 = player_iter.next().expect("Missing part in x ").parse().expect("Could not parse player x");
         let player_y: i32 = player_iter.next().expect("Missing part in y").parse().expect("Could not parse player y");
+
+        let diamonds_line = lines.next().expect("No diamonds line found");
+        let diamonds_number: i32 = diamonds_line.parse().expect("Could not parse diamonds");
 
         lines.next();
 
@@ -70,6 +77,8 @@ impl Grid {
         Grid {
             tiles,
             player_position: (player_x, player_y),
+            diamonds_number,
+            timer: 150.0,
             zones,
             frame: 0,
             last_frame_direction: Movement::Afk,
@@ -116,13 +125,22 @@ impl Grid {
         } else {
             self.frame += 1;
         }
+
+        let overlay = Overlay::new();
+        overlay.render(self, context, sprites, zone);
+
+        if self.timer > 0.0 {
+            self.timer -= 0.1;
+        } 
     }
 
     pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
         for action in actions {
             action.apply(self);
             if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
-                action.render(self, context, sprites, zone);
+                if zone.is_in_zone(action.get_position().0, action.get_position().1) {
+                    action.render(self, context, sprites, zone);
+                }
             }
         }
     }
@@ -204,6 +222,14 @@ impl Grid {
         if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
             zone.render(self, context, sprites, &zone);
         }
+    }
+
+    pub fn get_diamonds_number(&self) -> i32 {
+        self.diamonds_number
+    }
+
+    pub fn get_timer(&self) -> f64 {
+        self.timer
     }
 
     pub fn is_game_over(&self) -> bool {

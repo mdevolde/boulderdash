@@ -1,6 +1,6 @@
 use std::{any::Any, rc::Rc};
 
-use web_sys::{console, CanvasRenderingContext2d, HtmlImageElement};
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use super::{diamond, display::{action::Action, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
@@ -70,42 +70,60 @@ impl Grid {
 
     pub fn update(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
         let mut actions = vec![];
-
         for rock in self.get_tiles_with_entity::<Rock>() {
             actions.extend(rock.update(self));
         }
+        self.apply_actions(actions, context, sprites);
         
+        let zones = self.zones.clone();
+        let zone = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones).expect("No zone found for player");
+        let mut actions = vec![];
         if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
             actions.extend(player_tile.update(self));
-            // TODO: remove this debug line
-            console::log_1(&format!("Player actions: {:?}", player_tile.update(self)).into());
-            console::log_1(&format!("Player tile: {:?}", player_tile).into());
+        }
+        if actions.len() == 0 {
+            self.set_player_doing(Movement::Afk, false)
+        } else {
+            self.apply_actions(actions, context, sprites);
+        }
+        if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
+            self.player_position = player.get_position();
         }
 
+        if zone != Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones).expect("No zone found for player") {
+            self.render_player_zone(context, sprites);
+        }
+
+        let mut actions = vec![];
         for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
             actions.extend(diamond.update(self));
         }
+        self.apply_actions(actions, context, sprites);
+    }
 
+    pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
         for action in actions {
             action.apply(self);
             if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
                 action.render(self, context, sprites, zone);
             }
         }
-        if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
-            self.player_position = player.get_position();
-        }
     }
 
-    pub fn set_player_doing(&mut self, movement: Movement) {
+    pub fn set_player_doing(&mut self, movement: Movement, pushing: bool) {
         let (x, y) = self.player_position;
         if let Some(player_tile) = self.get_tile(x, y) {
             if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
                 if let Some(player) = entity.as_any().downcast_ref::<Player>() {
                     let mut clone_player = player.clone();
                     clone_player.set_movement(movement);
-                    let field = Field::Entity(Rc::new(clone_player));
-                    let action = Action::new((x, y), field);
+                    let action: Action;
+                    if !pushing {
+                        action = clone_player.canced_push();
+                    } else {
+                        let field = Field::Entity(Rc::new(clone_player));
+                        action = Action::new((x, y), field);
+                    }
                     action.apply(self);
                 }
             }

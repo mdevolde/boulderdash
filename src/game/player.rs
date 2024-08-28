@@ -17,7 +17,7 @@ use super::display::zone::Zone;
 pub struct Player {
     position: (i32, i32),
     doing: Movement,
-    pushing: bool,
+    pushing: Option<Movement>,
 }
 
 impl Player {
@@ -25,7 +25,7 @@ impl Player {
         Player {
             position: (x, y),
             doing: Movement::Afk,
-            pushing: false,
+            pushing: None,
         }
     }
 
@@ -35,13 +35,13 @@ impl Player {
 
     pub fn canced_push(&self) -> Action {
         let mut self_clone = self.clone();
-        self_clone.pushing = false;
+        self_clone.pushing = None;
         Action::new(self.position, Field::Entity(Rc::new(self_clone)))
     }
 
     pub fn push_rock(&self, grid: &Grid, rock: &Rock) -> Vec<Action> {
         let mut actions = Vec::new();
-        if self.pushing {
+        if self.pushing.is_some() && self.doing == self.pushing.unwrap() {
             let (rx, ry) = rock.get_position();
             if let Some(tile) = grid.get_nearest_tile(rx, ry, self.doing) {
                 if tile.get_object_on().is_none() {
@@ -52,7 +52,7 @@ impl Player {
             };
         } else if self.doing == Movement::MoveLeft || self.doing == Movement::MoveRight {
             let mut self_copy = self.clone();
-            self_copy.pushing = true;
+            self_copy.pushing = Some(self.doing);
             self_copy.doing = Movement::Afk;
             actions.push(Action::new(self.position, Field::Entity(Rc::new(self_copy))));
         };
@@ -67,7 +67,7 @@ impl Movable for Player {
         let mut self_clone = self.clone();
         self_clone.doing = Movement::Afk;
         self_clone.position = (nx, ny);
-        self_clone.pushing = false;
+        self_clone.pushing = None;
         actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone))));
         actions
     }
@@ -90,11 +90,11 @@ impl Collidable for Player {
                     match tile.get_object_on() {
                         Some(Field::Entity(entity)) => match entity.get_type().as_str() {
                             "Rock" => {
-                                if self.pushing && direction == Movement::MoveLeft 
-                                || direction == Movement::MoveRight { // TODO: reinitialize pushing when direction changes
-                                    return direction.edit_position(self.position);
-                                } else {
-                                    return self.position;
+                                match direction {
+                                    Movement::MoveLeft | Movement::MoveRight => {
+                                        return direction.edit_position(self.position);
+                                    },
+                                    _ => return self.position,
                                 }
                             }
                             _ => return direction.edit_position(self.position),

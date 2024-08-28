@@ -8,16 +8,6 @@ pub enum Movement {
 }
 
 impl Movement {
-    pub fn from_key(key: &str) -> Movement {
-        match key {
-            "w" => Movement::MoveUp,
-            "s" => Movement::MoveDown,
-            "a" => Movement::MoveLeft,
-            "d" => Movement::MoveRight,
-            _ => Movement::Afk
-        }
-    }
-
     pub fn edit_position(&self, position: (i32, i32)) -> (i32, i32) {
         match self {
             Movement::MoveUp => (position.0, position.1 - 1),

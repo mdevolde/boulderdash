@@ -1,6 +1,6 @@
 use crate::game::interfaces::renderable::Renderable;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Zone {
     start_x: i32,
     end_x: i32,

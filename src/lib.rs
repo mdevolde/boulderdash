@@ -102,7 +102,7 @@ impl Game {
         }
         if let Some(level_text) = Game::get_level_text(self.current_level, &self.levels) {
             let canvas_width = self.context.canvas().expect("No canvas found").width();
-            let canvas_height = self.context.canvas().expect("No canvas found").height();
+            let canvas_height = self.context.canvas().expect("No canvas found").height() - 32;
             self.grid = Grid::new(&level_text, canvas_width as i32, canvas_height as i32);
             self.grid.render_player_zone(&mut self.context, &self.sprites);
         } else {

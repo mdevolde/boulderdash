@@ -2,7 +2,7 @@ use std::{any::Any, rc::Rc};
 
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
-use super::{diamond, display::{action::Action, overlay::Overlay, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use super::{diamond, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
@@ -11,6 +11,7 @@ pub struct Grid {
     diamonds_number: i32,
     timer: f64,
     zones: Vec<Zone>,
+    scroller: Option<Scroller>,
     frame: i32,
     last_frame_direction: Movement,
     last_frame_side_direction: Movement,
@@ -28,6 +29,7 @@ impl Grid {
             diamonds_number: 0,
             timer: 0.0,
             zones: vec![],
+            scroller: None,
             frame: 0,
             last_frame_direction: Movement::Afk,
             last_frame_side_direction: Movement::Afk,
@@ -80,6 +82,7 @@ impl Grid {
             diamonds_number,
             timer: 150.0,
             zones,
+            scroller: None,
             frame: 0,
             last_frame_direction: Movement::Afk,
             last_frame_side_direction: Movement::Afk,
@@ -95,6 +98,17 @@ impl Grid {
         
         let zones = self.zones.clone();
         let zone = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones).expect("No zone found for player");
+        if let Some(scroller) = &mut self.scroller {
+            if let Some(active_zone) = scroller.update() {
+                active_zone.render(self, context, sprites, zone);
+            } else {
+                self.scroller = None;
+                if let Some(new_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones) {
+                    new_zone.render(self, context, sprites, zone);
+                }
+            }
+        }
+
         let mut actions = vec![];
         if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
             actions.extend(player_tile.update(self));
@@ -110,8 +124,16 @@ impl Grid {
             self.player_position = player.get_position();
         }
 
-        if zone != Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones).expect("No zone found for player") {
-            self.render_player_zone(context, sprites);
+        if let Some(current_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
+            if zone != current_zone {
+                if let Some(scroller) = &self.scroller {
+                    if let Some(active_zone) = scroller.get_active_zone() {
+                        self.scroller = Some(Scroller::new(active_zone, *current_zone));
+                    }
+                } else {
+                    self.scroller = Some(Scroller::new(*zone, *current_zone));
+                }
+            }
         }
 
         let mut actions = vec![];
@@ -138,7 +160,7 @@ impl Grid {
         for action in actions {
             action.apply(self);
             if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
-                if zone.is_in_zone(action.get_position().0, action.get_position().1) {
+                if zone.is_in_zone(action.get_position().0, action.get_position().1) && self.scroller.is_none() {
                     action.render(self, context, sprites, zone);
                 }
             }

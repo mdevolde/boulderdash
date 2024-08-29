@@ -9,6 +9,15 @@ pub struct Zone {
 }
 
 impl Zone {
+    pub fn new(start_x: i32, end_x: i32, start_y: i32, end_y: i32) -> Self {
+        Zone {
+            start_x,
+            end_x,
+            start_y,
+            end_y,
+        }
+    }
+
     pub fn from_map(width: i32, height: i32, mut canvas_width: i32, mut canvas_height: i32) -> Vec<Zone> {
         let mut zones = Vec::new();
 

@@ -4,7 +4,7 @@ async function run() {
     await init();
 
     let lastTime = 0;
-    const tickDuration = 1000 / 10;
+    const tickDuration = 1000 / 20;
     let game = await new Game();
     const keysPressed = {};
 

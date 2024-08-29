@@ -29,6 +29,14 @@ impl Player {
         }
     }
 
+    pub fn get_player_actions(grid: &Grid) -> Vec<Action> {
+        let mut actions = Vec::new();
+        if let Some(player_tile) = grid.get_tile(grid.get_player_position().0, grid.get_player_position().1) {
+            actions.extend(player_tile.update(grid));
+        }
+        actions
+    }
+
     pub fn set_movement(&mut self, movement: Movement) {
         self.doing = movement;
     }

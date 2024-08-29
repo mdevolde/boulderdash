@@ -19,6 +19,14 @@ impl Rock {
             falling_since: 0,
         }
     }
+
+    pub fn get_rock_actions(grid: &Grid) -> Vec<Action> {
+        let mut actions = vec![];
+        for rock in grid.get_tiles_with_entity::<Rock>() {
+            actions.extend(rock.update(grid));
+        };
+        actions
+    }
 }
 
 impl Movable for Rock {

@@ -2,7 +2,7 @@ use std::{any::Any, rc::Rc};
 
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
-use super::{diamond, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use super::{diamond::{self, Diamond}, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
@@ -90,70 +90,40 @@ impl Grid {
     }
 
     pub fn update(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
-        let mut actions = vec![];
-        for rock in self.get_tiles_with_entity::<Rock>() {
-            actions.extend(rock.update(self));
+        if self.frame % 2 == 0 {
+            let actions = Rock::get_rock_actions(self);
+            self.apply_actions(actions, context, sprites);
         }
-        self.apply_actions(actions, context, sprites);
         
         let zones = self.zones.clone();
         let zone = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones).expect("No zone found for player");
-        if let Some(scroller) = &mut self.scroller {
-            if let Some(active_zone) = scroller.update() {
-                active_zone.render(self, context, sprites, zone);
-            } else {
-                self.scroller = None;
-                if let Some(new_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones) {
-                    new_zone.render(self, context, sprites, zone);
-                }
-            }
-        }
 
-        let mut actions = vec![];
-        if let Some(player_tile) = self.get_tile(self.player_position.0, self.player_position.1) {
-            actions.extend(player_tile.update(self));
+        self.scroll_if_needed(context, sprites, zone, &zones);
+
+        if self.frame % 2 == 0 {
+            let actions = Player::get_player_actions(self);
+            self.set_last_frame_direction_afk_if_needed(&actions);
+            self.apply_actions(actions, context, sprites);
         }
-        if let Some(action) = actions.get(0) {
-            if action.get_position() == self.player_position && actions.len() == 1 {
-                self.last_frame_direction = Movement::Afk;
-            }
-        }
-        self.apply_actions(actions, context, sprites);
     
         if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
             self.player_position = player.get_position();
         }
 
-        if let Some(current_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
-            if zone != current_zone {
-                if let Some(scroller) = &self.scroller {
-                    if let Some(active_zone) = scroller.get_active_zone() {
-                        self.scroller = Some(Scroller::new(active_zone, *current_zone));
-                    }
-                } else {
-                    self.scroller = Some(Scroller::new(*zone, *current_zone));
-                }
-            }
-        }
+        self.set_scroller_if_needed(zone);
 
-        let mut actions = vec![];
-        for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
-            actions.extend(diamond.update(self));
-        }
-        self.apply_actions(actions, context, sprites);
-        
-        if self.frame == 7 {
-            self.frame = 0;
+        if self.frame % 2 == 0 {
+            let actions = Diamond::get_diamond_actions(self);
+            self.apply_actions(actions, context, sprites);
         } else {
-            self.frame += 1;
+            self.render_diamonds_gif(context, sprites, zone);
         }
 
         let overlay = Overlay::new();
         overlay.render(self, context, sprites, zone);
 
-        if self.timer > 0.0 {
-            self.timer -= 0.1;
-        } 
+        self.increment_frame();
+        self.increment_timer();
     }
 
     pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
@@ -167,29 +137,61 @@ impl Grid {
         }
     }
 
-    pub fn set_player_doing(&mut self, movement: Movement) {
-        if movement == Movement::MoveLeft || movement == Movement::MoveRight {
-            self.last_frame_direction = movement;
-            self.last_frame_side_direction = movement;
-        } else {
-            self.last_frame_direction = self.last_frame_side_direction;
-        }
-        
-        let (x, y) = self.player_position;
-        if let Some(player_tile) = self.get_tile(x, y) {
-            if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
-                if let Some(player) = entity.as_any().downcast_ref::<Player>() {
-                    let mut clone_player = player.clone();
-                    clone_player.set_movement(movement);
-                    let action: Action;
-                
-                    let field = Field::Entity(Rc::new(clone_player));
-                    action = Action::new((x, y), field);
-                    
-                    action.apply(self);
+    pub fn scroll_if_needed(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone, zones: &Vec<Zone>) {
+        if let Some(scroller) = &mut self.scroller {
+            if let Some(active_zone) = scroller.update() {
+                active_zone.render(self, context, sprites, zone);
+            } else {
+                self.scroller = None;
+                if let Some(new_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &zones) {
+                    new_zone.render(self, context, sprites, zone);
                 }
             }
         }
+    }
+
+    pub fn set_last_frame_direction_afk_if_needed(&mut self, actions: &Vec<Action>) {
+        if let Some(action) = actions.get(0) {
+            if action.get_position() == self.player_position && actions.len() == 1 {
+                self.last_frame_direction = Movement::Afk;
+            }
+        }
+    }
+
+    pub fn set_scroller_if_needed(&mut self, zone: &Zone) {
+        if let Some(current_zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
+            if zone != current_zone {
+                if let Some(scroller) = &self.scroller {
+                    if let Some(active_zone) = scroller.get_active_zone() {
+                        self.scroller = Some(Scroller::new(active_zone, *current_zone));
+                    }
+                } else {
+                    self.scroller = Some(Scroller::new(*zone, *current_zone));
+                }
+            }
+        }
+    }
+
+    pub fn render_diamonds_gif(&self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, zone: &Zone) {
+        for diamond in self.get_tiles_with_entity::<diamond::Diamond>() {
+            if self.scroller.is_none() && zone.is_in_zone(diamond.get_position().0, diamond.get_position().1) {
+                diamond.render(self, context, sprites, zone);
+            }
+        }
+    }
+
+    pub fn increment_frame(&mut self) {
+        if self.frame == 7 {
+            self.frame = 0;
+        } else {
+            self.frame += 1;
+        }
+    }
+
+    pub fn increment_timer(&mut self) {
+        if self.timer > 0.0 {
+            self.timer -= 0.05;
+        } 
     }
 
     pub fn get_last_frame_direction(&self) -> Movement {
@@ -240,18 +242,18 @@ impl Grid {
         self.player_position
     }
 
-    pub fn render_player_zone(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
-        if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
-            zone.render(self, context, sprites, &zone);
-        }
-    }
-
     pub fn get_diamonds_number(&self) -> i32 {
         self.diamonds_number
     }
 
     pub fn get_timer(&self) -> f64 {
         self.timer
+    }
+
+    pub fn render_player_zone(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+        if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
+            zone.render(self, context, sprites, &zone);
+        }
     }
 
     pub fn is_game_over(&self) -> bool {
@@ -267,5 +269,30 @@ impl Grid {
             };
         };
         true
+    }
+
+    pub fn set_player_doing(&mut self, movement: Movement) {
+        if movement == Movement::MoveLeft || movement == Movement::MoveRight {
+            self.last_frame_direction = movement;
+            self.last_frame_side_direction = movement;
+        } else {
+            self.last_frame_direction = self.last_frame_side_direction;
+        }
+        
+        let (x, y) = self.player_position;
+        if let Some(player_tile) = self.get_tile(x, y) {
+            if let Some(Field::Entity(entity)) = player_tile.get_object_on() {
+                if let Some(player) = entity.as_any().downcast_ref::<Player>() {
+                    let mut clone_player = player.clone();
+                    clone_player.set_movement(movement);
+                    let action: Action;
+                
+                    let field = Field::Entity(Rc::new(clone_player));
+                    action = Action::new((x, y), field);
+                    
+                    action.apply(self);
+                }
+            }
+        }
     }
 }

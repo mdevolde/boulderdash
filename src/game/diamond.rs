@@ -20,6 +20,14 @@ impl Diamond {
         }
     }
 
+    pub fn get_diamond_actions(grid: &Grid) -> Vec<Action> {
+        let mut actions = Vec::new();
+        for diamond in grid.get_tiles_with_entity::<Diamond>() {
+            actions.extend(diamond.update(grid));
+        }
+        actions
+    }
+
     pub fn get_frame(&self, current_frame: i32) -> (f64, f64) {
         let frame_x = if (0..=7).contains(&current_frame) {
             current_frame as f64

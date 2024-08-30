@@ -4,7 +4,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use crate::game::tile::Tile;
 
-use super::{display::action::Action, enums::{field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}, display::zone::Zone};
+use super::{display::{action::Action, zone::Zone}, enums::{action_type::ActionType, field::Field, movement::Movement}, grid::Grid, interfaces::{collidable::Collidable, entity::Entity, fallable::Fallable, movable::Movable, renderable::Renderable}};
 
 #[derive(Clone)]
 pub struct Rock {
@@ -32,10 +32,10 @@ impl Rock {
 impl Movable for Rock {
     fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
-        actions.push(Action::new((ax, ay), Field::Empty));
+        actions.push(Action::new((ax, ay), Field::Empty, ActionType::NoMoreEntityOnTile));
         let mut self_clone = self.clone();
         self_clone.position = (nx, ny);
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone))));
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::FallableFall));
         actions
     }
 }
@@ -97,9 +97,11 @@ impl Fallable for Rock {
             let (x, y) = movement.edit_position(self.position);
             self_clone.falling_since += 1;
             actions.extend(self_clone.move_to(self.position.0, self.position.1, x, y));
-        } else {
+        } else if self.falling_since > 0 {
             self_clone.falling_since = 0;
-            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_clone))));
+            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_clone)), ActionType::RockFallOnSomethingOrPushed));
+        } else {
+            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_clone)), ActionType::FallableAFK));
         }
         actions
     }

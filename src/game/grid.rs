@@ -1,8 +1,7 @@
 use std::{any::Any, rc::Rc};
+use web_sys::{AudioBuffer, AudioContext, CanvasRenderingContext2d, HtmlImageElement};
 
-use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
-
-use super::{diamond::{self, Diamond}, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use super::{diamond::{self, Diamond}, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{action_type::ActionType, field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
@@ -89,10 +88,10 @@ impl Grid {
         }
     }
 
-    pub fn update(&mut self, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+    pub fn update(&mut self, context: &mut CanvasRenderingContext2d, audio_context: &mut AudioContext, sprites: &HtmlImageElement, sounds: &Vec<AudioBuffer>) {
         if self.frame % 2 == 0 {
             let actions = Rock::get_rock_actions(self);
-            self.apply_actions(actions, context, sprites);
+            self.apply_actions(actions, context, audio_context, sprites, sounds);
         }
         
         let zones = self.zones.clone();
@@ -103,7 +102,7 @@ impl Grid {
         if self.frame % 2 == 0 {
             let actions = Player::get_player_actions(self);
             self.set_last_frame_direction_afk_if_needed(&actions);
-            self.apply_actions(actions, context, sprites);
+            self.apply_actions(actions, context, audio_context, sprites, sounds);
         }
     
         if let Some(player) = self.get_tiles_with_entity::<Player>().get(0) {
@@ -114,7 +113,7 @@ impl Grid {
 
         if self.frame % 2 == 0 {
             let actions = Diamond::get_diamond_actions(self);
-            self.apply_actions(actions, context, sprites);
+            self.apply_actions(actions, context, audio_context, sprites, sounds);
         } else {
             self.render_diamonds_gif(context, sprites, zone);
         }
@@ -126,14 +125,27 @@ impl Grid {
         self.increment_timer();
     }
 
-    pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+    pub fn apply_actions(&mut self, actions: Vec<Action>, context: &mut CanvasRenderingContext2d, audio_context: &mut AudioContext, sprites: &HtmlImageElement, sounds: &Vec<AudioBuffer>) {
         for action in actions {
             action.apply(self);
             if let Some(zone) = Zone::get_current_zone(self.player_position.0, self.player_position.1, &self.zones) {
                 if zone.is_in_zone(action.get_position().0, action.get_position().1) && self.scroller.is_none() {
                     action.render(self, context, sprites, zone);
+                    if self.frame % 2 == 0 {
+                        self.play_action_sound(audio_context, action.get_action_type(), sounds);
+                    }
                 }
             }
+        }
+    }
+
+    pub fn play_action_sound(&self, audio_context: &AudioContext, action_type: &ActionType, sounds: &Vec<AudioBuffer>) {
+        if let Some(audio_buffer) = action_type.get_linked_sound(&sounds) {
+            let source = audio_context.create_buffer_source().unwrap();
+            source.set_buffer(Some(audio_buffer));
+            source.connect_with_audio_node(&audio_context.destination()).unwrap();
+            source.set_loop(false);
+            source.start().unwrap();
         }
     }
 
@@ -288,7 +300,7 @@ impl Grid {
                     let action: Action;
                 
                     let field = Field::Entity(Rc::new(clone_player));
-                    action = Action::new((x, y), field);
+                    action = Action::new((x, y), field, ActionType::PlayerSetMovement);
                     
                     action.apply(self);
                 }

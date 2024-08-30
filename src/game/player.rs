@@ -5,6 +5,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use super::display::action::Action;
 use super::diamond::Diamond;
+use super::enums::action_type::ActionType;
 use super::enums::field::Field;
 use super::grid::Grid;
 use super::interfaces::entity::Entity;
@@ -47,7 +48,7 @@ impl Player {
         if afk {
             self_clone.doing = Movement::Afk;
         };
-        Action::new(self.position, Field::Entity(Rc::new(self_clone)))
+        Action::new(self.position, Field::Entity(Rc::new(self_clone)), ActionType::PlayerCancelPush)
     }
 
     pub fn push_rock(&self, grid: &Grid, rock: &Rock) -> Vec<Action> {
@@ -65,7 +66,7 @@ impl Player {
             let mut self_copy = self.clone();
             self_copy.pushing = Some(self.doing);
             self_copy.doing = Movement::Afk;
-            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_copy))));
+            actions.push(Action::new(self.position, Field::Entity(Rc::new(self_copy)), ActionType::PlayerSetPush));
         };
         actions
     }
@@ -91,12 +92,12 @@ impl Player {
 impl Movable for Player {
     fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
-        actions.push(Action::new((ax, ay), Field::Empty));
+        actions.push(Action::new((ax, ay), Field::Empty, ActionType::NoMoreEntityOnTile));
         let mut self_clone = self.clone();
         self_clone.doing = Movement::Afk;
         self_clone.position = (nx, ny);
         self_clone.pushing = None;
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone))));
+        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::PlayerMove));
         actions
     }
 }

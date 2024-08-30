@@ -1,15 +1,22 @@
-import init, { Game } from './out/boulderdash.js';
+import init, { GameManager } from './out/boulderdash.js';
 
 async function run() {
     await init();
 
     let lastTime = 0;
     const tickDuration = 1000 / 20;
-    let game = await new Game();
+    let game = new GameManager();
+    let gameStarted = false;
     const keysPressed = {};
 
-    document.addEventListener('keydown', (event) => {
-        keysPressed[event.key] = true;
+    document.addEventListener('keydown', async (event) => {
+        if (!gameStarted) {
+            gameStarted = true;
+            await game.start();
+            requestAnimationFrame(gameLoop);
+        } else {
+            keysPressed[event.key] = true;
+        }
     });
 
     document.addEventListener('keyup', (event) => {
@@ -40,8 +47,6 @@ async function run() {
 
         requestAnimationFrame(gameLoop);
     }
-
-    requestAnimationFrame(gameLoop);
 }
 
 run();

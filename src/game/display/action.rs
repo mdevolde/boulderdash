@@ -1,4 +1,6 @@
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+use crate::game::enums::action_type::ActionType;
+
 use super::{super::{enums::field::Field, grid::Grid, interfaces::renderable::Renderable}, zone::Zone};
 
 
@@ -6,13 +8,15 @@ use super::{super::{enums::field::Field, grid::Grid, interfaces::renderable::Ren
 pub struct Action {
     coordinates: (i32, i32),
     field: Field,
+    action_type: ActionType,
 }
 
 impl Action {
-    pub fn new(coordinates: (i32, i32), field: Field) -> Self {
+    pub fn new(coordinates: (i32, i32), field: Field, action_type: ActionType) -> Self {
         Action {
             coordinates,
             field,
+            action_type
         }
     }
 
@@ -24,6 +28,10 @@ impl Action {
 
     pub fn get_position(&self) -> (i32, i32) {
         self.coordinates
+    }
+
+    pub fn get_action_type(&self) -> &ActionType {
+        &self.action_type
     }
 }
 

@@ -1,22 +1,56 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement};
+use web_sys::{AudioBuffer, AudioContext, CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement, Response};
 pub mod game;
 use game::{enums::movement::Movement, grid::Grid};
 
+
 #[wasm_bindgen]
-pub struct Game {
-    grid: Grid,
-    context: CanvasRenderingContext2d,
-    sprites: HtmlImageElement,
-    levels: js_sys::Array,
-    current_level: u32,
+pub struct GameManager {
+    game: Option<Game>,
 }
 
 #[wasm_bindgen]
-impl Game {
+impl GameManager {
     #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        GameManager {
+            game: None,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub async fn start(&mut self) {
+        self.game = Some(Game::new().await);
+    }
+
+    #[wasm_bindgen]
+    pub fn key_down(&mut self, key: String) {
+        if let Some(game) = &mut self.game {
+            game.key_down(key);
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn update(&mut self) {
+        if let Some(game) = &mut self.game {
+            game.update();
+        }
+    }
+}
+
+pub struct Game {
+    grid: Grid,
+    context: CanvasRenderingContext2d,
+    audio_context: AudioContext,
+    sprites: HtmlImageElement,
+    sounds: Vec<AudioBuffer>,
+    levels: Vec<String>,
+    current_level: u32,
+}
+
+impl Game {
     pub async fn new() -> Self {
 
         let window = web_sys::window().expect("No global `window` exists");
@@ -25,6 +59,8 @@ impl Game {
         let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Element should be a canvas");
 
         let levels = Game::load_level_files().await.expect("Failed to load level files");
+        let audio_context = AudioContext::new().expect("Failed to create audio context");
+        let sounds = Game::load_sound_files(&audio_context).await.expect("Failed to load sound files");
 
         let mut context = canvas
             .get_context("2d").expect("Failed to get 2d context")
@@ -43,12 +79,7 @@ impl Game {
 
         image_loaded.await.expect("Failed to load image");
 
-        let js_levels = js_sys::Array::new();
-        for level in levels.iter() {
-            js_levels.push(&JsValue::from_str(level));
-        }
-
-        let level_text = Game::get_level_text(1, &js_levels).expect("There is no level 1");
+        let level_text = Game::get_level_text(1, &levels).expect("There is no level 1");
         let canvas_width = context.canvas().expect("No canvas found").width();
         let canvas_height = context.canvas().expect("No canvas found").height() - 32;
         let mut grid = Grid::new(&level_text, canvas_width as i32, canvas_height as i32);
@@ -58,15 +89,17 @@ impl Game {
         Game {
             grid,
             context,
+            audio_context,
             sprites,
-            levels: js_levels,
+            sounds,
+            levels,
             current_level: 1,
         }
 
     }
 
-    pub fn get_level_text(level: u32, levels: &js_sys::Array) -> Option<String> {
-        levels.get(level-1).as_string()
+    pub fn get_level_text(level: u32, levels: &Vec<String>) -> Option<&String> {
+        levels.get(level as usize - 1)
     }
 
     async fn load_level_files() -> Result<Vec<String>, JsValue> {
@@ -82,18 +115,46 @@ impl Game {
         }
         Ok(level_files)
     }
-    
+
     async fn load_text_file(path: &str) -> Result<String, JsValue> {
+        let resp = Game::load_file(path).await?;
+        let text = JsFuture::from(resp.text()?).await?;
+        Ok(text.as_string().unwrap())
+    }
+
+    async fn load_sound_files(audio_context: &AudioContext) -> Result<Vec<AudioBuffer>, JsValue> {
+        let file_names = vec![
+            "../static/sound/ClaimDiamond.mp3", 
+            "../static/sound/DiamondFallOnSomething.mp3",
+            "../static/sound/PlayerMove.mp3",
+            "../static/sound/RockFallOnSomethingOrPushed.mp3",
+            "../static/sound/WalkOnDirt.mp3",
+            ];
+        let mut buffers = Vec::new();
+        for file_name in file_names {
+            buffers.push(Game::load_sound_file(file_name, audio_context).await?);
+        };
+        Ok(buffers)
+    }
+
+    async fn load_sound_file(path: &str, audio_context: &AudioContext) -> Result<AudioBuffer, JsValue> {
+        let resp = Game::load_file(path).await?;
+        let buffer = JsFuture::from(resp.array_buffer()?).await?;
+        let promise = audio_context.decode_audio_data(&buffer.into())?;
+        let audio_buffer = JsFuture::from(promise).await?;
+        Ok(audio_buffer.unchecked_into::<AudioBuffer>())
+    }
+
+    async fn load_file(path: &str) -> Result<Response, JsValue> {
         let window = web_sys::window().expect("No global `window` exists");
         let resp_value = JsFuture::from(window.fetch_with_str(path)).await?;
-        let resp: web_sys::Response = resp_value.dyn_into().expect("Not a valid Response");
+        let resp: Response = resp_value.dyn_into().expect("Not a valid Response");
         
         if !resp.ok() {
             return Err(JsValue::from_str(&format!("Failed to load file: {}", path)));
         }
-    
-        let text = JsFuture::from(resp.text()?).await?;
-        Ok(text.as_string().unwrap())
+
+        Ok(resp)
     }
 
     fn next_level(&mut self, increase_level: bool) {
@@ -111,7 +172,6 @@ impl Game {
         }
     }
 
-    #[wasm_bindgen]
     pub fn key_down(&mut self, key: String) {
         match key.as_str() {
             "ArrowUp" => self.grid.set_player_doing(Movement::MoveUp),
@@ -122,9 +182,8 @@ impl Game {
         }
     }
 
-    #[wasm_bindgen]
     pub fn update(&mut self) {
-        self.grid.update(&mut self.context, &mut self.sprites);
+        self.grid.update(&mut self.context, &mut self.audio_context, &self.sprites, &self.sounds);
         if self.grid.is_level_completed() {
             self.next_level(true);
         } else if self.grid.is_game_over() {

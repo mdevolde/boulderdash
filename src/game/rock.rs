@@ -30,12 +30,21 @@ impl Rock {
 }
 
 impl Movable for Rock {
-    fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
+    fn move_to(&self, grid: &Grid, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
         actions.push(Action::new((ax, ay), Field::Empty, ActionType::NoMoreEntityOnTile));
         let mut self_clone = self.clone();
         self_clone.position = (nx, ny);
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::FallableFall));
+        if let Some(tile) = grid.get_tile(nx, ny) {
+            match tile.get_object_on() {
+                Some(Field::Entity(entity)) => {
+                    if entity.get_type().as_str() == "Player" {
+                        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::KillPlayer));
+                    };
+                },
+                _ => actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::FallableFall)),
+            };
+        }
         actions
     }
 }
@@ -96,7 +105,7 @@ impl Fallable for Rock {
         if let Some(movement) = self.is_falling(grid) {
             let (x, y) = movement.edit_position(self.position);
             self_clone.falling_since += 1;
-            actions.extend(self_clone.move_to(self.position.0, self.position.1, x, y));
+            actions.extend(self_clone.move_to(grid, self.position.0, self.position.1, x, y));
         } else if self.falling_since > 0 {
             self_clone.falling_since = 0;
             actions.push(Action::new(self.position, Field::Entity(Rc::new(self_clone)), ActionType::RockFallOnSomethingOrPushed));

@@ -3,12 +3,12 @@ use web_sys::AudioBuffer;
 #[derive(Debug, PartialEq)]
 pub enum ActionType {
     WalkOnDirt,
-    ClaimDiamond, // TODO: Implement the detection of the diamond claim
+    ClaimDiamond,
     RockFallOnSomethingOrPushed,
     DiamondFallOnSomething,
     FallableFall,
     FallableAFK,
-    KillPlayer, // TODO: Implement the detection of the player death
+    KillPlayer,
     PlayerMove,
     PlayerSetMovement,
     PlayerSetPush,

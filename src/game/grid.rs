@@ -132,9 +132,9 @@ impl Grid {
                 if zone.is_in_zone(action.get_position().0, action.get_position().1) && self.scroller.is_none() {
                     action.render(self, context, sprites, zone);
                     if self.frame % 2 == 0 {
-                        self.play_action_sound(audio_context, action.get_action_type(), sounds);
                     }
                 }
+                self.play_action_sound(audio_context, action.get_action_type(), sounds);
             }
         }
     }

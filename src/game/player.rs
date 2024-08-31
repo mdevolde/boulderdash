@@ -58,8 +58,8 @@ impl Player {
             if let Some(tile) = grid.get_nearest_tile(rx, ry, self.doing) {
                 if tile.get_object_on().is_none() {
                     let (frx, fry) = self.doing.edit_position((rx, ry));
-                    actions.extend(rock.move_to(rx, ry, frx, fry));
-                    actions.extend(self.move_to(self.position.0, self.position.1, rx, ry));
+                    actions.extend(rock.move_to(grid, rx, ry, frx, fry));
+                    actions.extend(self.move_to(grid, self.position.0, self.position.1, rx, ry));
                 };
             };
         } else if self.doing == Movement::MoveLeft || self.doing == Movement::MoveRight {
@@ -90,14 +90,23 @@ impl Player {
 }
 
 impl Movable for Player {
-    fn move_to(&self, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
+    fn move_to(&self, grid: &Grid, ax: i32, ay: i32, nx: i32, ny: i32) -> Vec<Action> {
         let mut actions = Vec::new();
         actions.push(Action::new((ax, ay), Field::Empty, ActionType::NoMoreEntityOnTile));
         let mut self_clone = self.clone();
         self_clone.doing = Movement::Afk;
         self_clone.position = (nx, ny);
         self_clone.pushing = None;
-        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::PlayerMove));
+        if let Some(tile) = grid.get_tile(nx, ny) {
+            match tile.get_object_on() {
+                Some(Field::Entity(entity)) => {
+                    if entity.get_type().as_str() == "Diamond" {
+                        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::ClaimDiamond));
+                    };
+                },
+                _ => actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::PlayerMove)),
+            };
+        }
         actions
     }
 }
@@ -180,18 +189,18 @@ impl Entity for Player {
                         let rock = entity.as_any().downcast_ref::<Rock>().expect("Downcast failed for a Rock").clone();
                         actions.extend(self.push_rock(grid, &rock));
                     } else if entity.get_type().as_str() == "Diamond" {
-                        actions.extend(self.move_to(x, y, fx, fy));
+                        actions.extend(self.move_to(grid, x, y, fx, fy));
                     } else {
                         actions.push(self.cancel_push(true));
                     };
                 },
                 Some(Field::Exit) => {
                     if grid.get_tiles_with_entity::<Diamond>().len() == 0 {
-                        actions.extend(self.move_to(x, y, fx, fy));
+                        actions.extend(self.move_to(grid, x, y, fx, fy));
                     };
                 },
                 Some(Field::Wall(_)) => actions.push(self.cancel_push(false)),
-                _ => actions.extend(self.move_to(x, y, fx, fy)),
+                _ => actions.extend(self.move_to(grid, x, y, fx, fy)),
             };
         };
         actions

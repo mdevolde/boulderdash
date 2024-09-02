@@ -9,6 +9,56 @@ async function run() {
     let gameStarted = false;
     const keysPressed = {};
 
+    let startX, startY, endX, endY;
+
+    document.addEventListener('touchstart', function(event) {
+        const touch = event.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+    }, false);
+
+    document.addEventListener('touchend', function(event) {
+        handleSwipeRelease();
+    }, false);
+
+    function handleSwipeRelease() {
+        keysPressed['ArrowRight'] = false;
+        keysPressed['ArrowLeft'] = false;
+        keysPressed['ArrowUp'] = false;
+        keysPressed['ArrowDown'] = false;
+    }
+
+    document.addEventListener('touchmove', function(event) {
+        const touch = event.touches[0];
+        endX = touch.clientX;
+        endY = touch.clientY;
+        handleSwipe();
+    }, false);
+
+    function handleSwipe() {
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+        
+        keysPressed['ArrowRight'] = false;
+        keysPressed['ArrowLeft'] = false;
+        keysPressed['ArrowUp'] = false;
+        keysPressed['ArrowDown'] = false;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX > 0) {
+                keysPressed['ArrowRight'] = true;
+            } else {
+                keysPressed['ArrowLeft'] = true;
+            }
+        } else {
+            if (deltaY > 0) {
+                keysPressed['ArrowDown'] = true;
+            } else {
+                keysPressed['ArrowUp'] = true;
+            }
+        }
+    }
+
     document.addEventListener('keydown', async (event) => {
         if (!gameStarted) {
             gameStarted = true;

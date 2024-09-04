@@ -102,6 +102,8 @@ impl Movable for Player {
                 Some(Field::Entity(entity)) => {
                     if entity.get_type().as_str() == "Diamond" {
                         actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::ClaimDiamond));
+                    } else {
+                        actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::PlayerMove));
                     };
                 },
                 _ => actions.push(Action::new((nx, ny), Field::Entity(Rc::new(self_clone)), ActionType::PlayerMove)),

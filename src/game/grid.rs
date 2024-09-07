@@ -1,7 +1,7 @@
 use std::{any::Any, rc::Rc};
 use web_sys::{AudioBuffer, AudioContext, CanvasRenderingContext2d, HtmlImageElement};
 
-use super::{diamond::{self, Diamond}, display::{action::Action, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{action_type::ActionType, field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
+use super::{diamond::{self, Diamond}, display::{action::Action, animation::Animation, overlay::Overlay, scroller::Scroller, zone::Zone}, enums::{action_type::ActionType, animation_type::AnimationType, field::Field, movement::Movement}, interfaces::{collidable::Collidable, entity::Entity, renderable::Renderable}, player::Player, rock::Rock, tile::Tile, wall::Wall};
 
 #[derive(Debug)]
 pub struct Grid {
@@ -11,6 +11,7 @@ pub struct Grid {
     timer: f64,
     zones: Vec<Zone>,
     scroller: Option<Scroller>,
+    animation: Option<Animation>,
     frame: i32,
     last_frame_direction: Movement,
     last_frame_side_direction: Movement,
@@ -29,6 +30,7 @@ impl Grid {
             timer: 0.0,
             zones: vec![],
             scroller: None,
+            animation: None,
             frame: 0,
             last_frame_direction: Movement::Afk,
             last_frame_side_direction: Movement::Afk,
@@ -75,6 +77,8 @@ impl Grid {
 
         let zones = Zone::from_map(width, height, canvas_sx, canvas_sy);
 
+        let animation = Some(Animation::new(AnimationType::Spawn, 40, (player_x, player_y)));
+
         Grid {
             tiles,
             player_position: (player_x, player_y),
@@ -82,6 +86,7 @@ impl Grid {
             timer: 150.0,
             zones,
             scroller: None,
+            animation,
             frame: 0,
             last_frame_direction: Movement::Afk,
             last_frame_side_direction: Movement::Afk,
@@ -120,6 +125,17 @@ impl Grid {
 
         let overlay = Overlay::new();
         overlay.render(self, context, sprites, zone);
+
+        if self.frame % 2 == 0 {
+            if let Some(animation) = &mut self.animation.clone() {
+                if let Some(_) = animation.update() {
+                    animation.render(self, context, sprites, zone);
+                    self.animation = Some(animation.clone());
+                } else {
+                    self.animation = None;
+                }
+            }
+        }
 
         self.increment_frame();
         self.increment_timer();
@@ -282,12 +298,15 @@ impl Grid {
     }
 
     pub fn set_player_doing(&mut self, movement: Movement) {
+        if self.animation.is_some() {
+            return;
+        };
         if movement == Movement::MoveLeft || movement == Movement::MoveRight {
             self.last_frame_direction = movement;
             self.last_frame_side_direction = movement;
         } else {
             self.last_frame_direction = self.last_frame_side_direction;
-        }
+        };
         
         let (x, y) = self.player_position;
         if let Some(player_tile) = self.get_tile(x, y) {
@@ -301,8 +320,8 @@ impl Grid {
                     action = Action::new((x, y), field, ActionType::PlayerSetMovement);
                     
                     action.apply(self);
-                }
-            }
-        }
+                };
+            };
+        };
     }
 }

@@ -1,4 +1,6 @@
-use crate::game::interfaces::renderable::Renderable;
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
+
+use crate::game::{grid::Grid, interfaces::renderable::Renderable};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Zone {
@@ -117,7 +119,7 @@ impl Zone {
 }
 
 impl Renderable for Zone {
-    fn render(&self, grid: &crate::game::grid::Grid, context: &mut web_sys::CanvasRenderingContext2d, sprites: &web_sys::HtmlImageElement, _: &Zone) {
+    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, _: &Zone) {
         for y in self.get_sy()..self.get_ey() {
             for x in self.get_sx()..self.get_ex() {
                 let tile = grid.get_tile(x, y).expect("Tile not found");

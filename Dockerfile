@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Step 1 : Create an image for building the Rust project
-FROM rust:1.80 as builder
+FROM rust:1.85 AS builder
 
 # Install the build dependencies
 RUN apt-get update && apt-get install -y build-essential
@@ -19,12 +19,11 @@ COPY . .
 RUN wasm-pack build --release --target web
 
 # Step 2 : Create an image for running the Python server
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Install python dependencies
 COPY requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --upgrade pip && pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the Python file, templates and static files
 COPY ./app.py /app/app.py

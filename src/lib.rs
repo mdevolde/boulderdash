@@ -22,6 +22,7 @@ pub struct TitleScreenManager {
     screen_title: ScreenTitle,
     context: CanvasRenderingContext2d,
     scroll_offset: f64,
+    blink_timer: f64,
 }
 
 #[wasm_bindgen]
@@ -56,14 +57,19 @@ impl TitleScreenManager {
             screen_title,
             context,
             scroll_offset: 0.0,
+            blink_timer: 0.0,
         }
     }
 
     #[wasm_bindgen]
     pub fn update(&mut self) {
         self.scroll_offset += 1.0;
+        self.blink_timer += 1.0;
+        
+        let show_text = (self.blink_timer / 30.0) % 2.0 < 1.0;
+        
         self.screen_title
-            .render_with_scroll(&mut self.context, self.scroll_offset);
+            .render_with_scroll(&mut self.context, self.scroll_offset, show_text);
     }
 
     #[wasm_bindgen]

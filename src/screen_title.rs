@@ -139,7 +139,7 @@ impl ScreenTitle {
         context.fill_text(text, x, y).unwrap();
     }
 
-    pub fn render_with_scroll(&self, context: &mut CanvasRenderingContext2d, scroll_offset: f64) {
+    pub fn render_with_scroll(&self, context: &mut CanvasRenderingContext2d, scroll_offset: f64, show_instructions: bool) {
         let canvas = context.canvas().expect("No canvas found");
         let canvas_width = canvas.width() as f64;
         let canvas_height = canvas.height() as f64;
@@ -182,6 +182,9 @@ impl ScreenTitle {
         context.restore();
         self.render_bd_title(context);
         self.render_credits(context);
-        self.render_instructions(context);
+        
+        if show_instructions {
+            self.render_instructions(context);
+        }
     }
 }

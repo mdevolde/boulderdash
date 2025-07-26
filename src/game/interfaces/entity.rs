@@ -1,5 +1,5 @@
-use std::fmt;
 use std::any::Any;
+use std::fmt;
 
 use crate::game::{display::action::Action, grid::Grid};
 

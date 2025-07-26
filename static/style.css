@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'boulderdash';
+    src: url('./img/boulderdash.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body, html {
     margin: 0;
     height: 100%;

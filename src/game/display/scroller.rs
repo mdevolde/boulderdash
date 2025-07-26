@@ -29,9 +29,13 @@ impl Scroller {
             if active_zone == self.to_zone {
                 self.active_zone = None;
                 return None;
-            } else if active_zone.get_sx() == self.to_zone.get_sx() && active_zone.get_ex() == self.to_zone.get_ex() {
+            } else if active_zone.get_sx() == self.to_zone.get_sx()
+                && active_zone.get_ex() == self.to_zone.get_ex()
+            {
                 self.x_reached = true;
-            } else if active_zone.get_sy() == self.to_zone.get_sy() && active_zone.get_ey() == self.to_zone.get_ey() {
+            } else if active_zone.get_sy() == self.to_zone.get_sy()
+                && active_zone.get_ey() == self.to_zone.get_ey()
+            {
                 self.y_reached = true;
             }
         } else if self.from_zone == self.to_zone {
@@ -40,7 +44,7 @@ impl Scroller {
 
         if !self.x_reached {
             self.x_counter += 1;
-        } 
+        }
         if !self.y_reached {
             self.y_counter += 1;
         }
@@ -74,4 +78,3 @@ impl Scroller {
         self.active_zone
     }
 }
-

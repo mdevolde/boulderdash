@@ -4,7 +4,7 @@ pub enum Movement {
     MoveDown,
     MoveLeft,
     MoveRight,
-    Afk
+    Afk,
 }
 
 impl Movement {

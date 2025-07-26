@@ -20,7 +20,12 @@ impl Zone {
         }
     }
 
-    pub fn from_map(width: i32, height: i32, mut canvas_width: i32, mut canvas_height: i32) -> Vec<Zone> {
+    pub fn from_map(
+        width: i32,
+        height: i32,
+        mut canvas_width: i32,
+        mut canvas_height: i32,
+    ) -> Vec<Zone> {
         let mut zones = Vec::new();
 
         canvas_width /= 32;
@@ -28,7 +33,7 @@ impl Zone {
 
         let overlap_x = width - canvas_width;
         let overlap_y = height - canvas_height;
-    
+
         let mut y = 0;
         while y < height {
             let mut x = 0;
@@ -45,7 +50,7 @@ impl Zone {
                 if (end_y - start_y) < canvas_height {
                     start_y -= (start_y - overlap_y).max(0);
                 }
-                
+
                 zones.push(Zone {
                     start_x,
                     end_x,
@@ -66,35 +71,42 @@ impl Zone {
             }
             y += canvas_height - overlap_y;
         }
-    
+
         zones
     }
 
     pub fn get_current_zone(player_x: i32, player_y: i32, zones: &[Zone]) -> Option<&Zone> {
-        let mut possible_zones: Vec<&Zone> = zones.iter()
+        let mut possible_zones: Vec<&Zone> = zones
+            .iter()
             .filter(|zone| {
-                player_x >= zone.start_x && player_x < zone.end_x &&
-                player_y >= zone.start_y && player_y < zone.end_y
+                player_x >= zone.start_x
+                    && player_x < zone.end_x
+                    && player_y >= zone.start_y
+                    && player_y < zone.end_y
             })
             .collect();
-    
+
         if possible_zones.len() == 1 {
             return possible_zones.pop();
         }
-    
+
         possible_zones.sort_by_key(|zone| {
-            let distance_x = (player_x - zone.start_x).abs().min((zone.end_x - player_x).abs());
-            let distance_y = (player_y - zone.start_y).abs().min((zone.end_y - player_y).abs());
+            let distance_x = (player_x - zone.start_x)
+                .abs()
+                .min((zone.end_x - player_x).abs());
+            let distance_y = (player_y - zone.start_y)
+                .abs()
+                .min((zone.end_y - player_y).abs());
             -(distance_x + distance_y)
         });
-    
+
         possible_zones.first().copied()
     }
 
     pub fn get_patched_position(&self, (x, y): (i32, i32)) -> (f64, f64) {
         let x = x - self.start_x;
         let y = y - self.start_y;
-        ((x * 32) as f64, (y*32) as f64)
+        ((x * 32) as f64, (y * 32) as f64)
     }
 
     pub fn get_sx(&self) -> i32 {
@@ -119,12 +131,18 @@ impl Zone {
 }
 
 impl Renderable for Zone {
-    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, _: &Zone) {
+    fn render(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+        _: &Zone,
+    ) {
         for y in self.get_sy()..self.get_ey() {
             for x in self.get_sx()..self.get_ex() {
                 let tile = grid.get_tile(x, y).expect("Tile not found");
                 tile.render(grid, context, sprites, self);
             }
-        };
+        }
     }
 }

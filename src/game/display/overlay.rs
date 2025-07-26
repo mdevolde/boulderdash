@@ -15,7 +15,7 @@ impl Overlay {
         let mut positions = Vec::new();
         let mut x = if yellow { 9.0 } else { 8.0 };
         let mut y;
-    
+
         for c in sentence.chars() {
             match c {
                 'A'..='Z' => {
@@ -36,55 +36,76 @@ impl Overlay {
                 _ => {}
             }
         }
-    
+
         positions
     }
 
-    pub fn render_diamonds_number(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+    pub fn render_diamonds_number(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+    ) {
         let mut positions = vec![];
-        positions.extend(self.get_sentence_positions(&grid.get_diamonds_number().to_string(), true));
+        positions
+            .extend(self.get_sentence_positions(&grid.get_diamonds_number().to_string(), true));
         positions.extend(self.get_sentence_positions("^", false));
-        positions.extend(self.get_sentence_positions(&grid.get_diamonds_number().to_string(), false));
+        positions
+            .extend(self.get_sentence_positions(&grid.get_diamonds_number().to_string(), false));
         for (i, (x, y)) in positions.iter().enumerate() {
-            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                sprites,
-                x * 32.0,
-                (y * 16.0) + 1.0,
-                32.0,
-                16.0,
-                32.0 * i as f64,
-                0.0,
-                32.0,
-                32.0,
-            )
-            .unwrap();
+            context
+                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    sprites,
+                    x * 32.0,
+                    (y * 16.0) + 1.0,
+                    32.0,
+                    16.0,
+                    32.0 * i as f64,
+                    0.0,
+                    32.0,
+                    32.0,
+                )
+                .unwrap();
         }
     }
 
-    pub fn render_diamonds_claimed(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
-        let mut diamonds_claimed =  (grid.get_diamonds_number() - grid.get_tiles_with_entity::<Diamond>().len() as i32).to_string();
+    pub fn render_diamonds_claimed(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+    ) {
+        let mut diamonds_claimed = (grid.get_diamonds_number()
+            - grid.get_tiles_with_entity::<Diamond>().len() as i32)
+            .to_string();
         if diamonds_claimed.len() == 1 {
             diamonds_claimed = format!("0{}", diamonds_claimed);
         }
 
         let positions = self.get_sentence_positions(&diamonds_claimed, true);
         for (i, (x, y)) in positions.iter().enumerate() {
-            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                sprites,
-                x * 32.0,
-                (y * 16.0) + 1.0,
-                32.0,
-                16.0,
-                (32.0 * i as f64) + (10.0 * 32.0),
-                0.0,
-                32.0,
-                32.0,
-            )
-            .unwrap();
+            context
+                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    sprites,
+                    x * 32.0,
+                    (y * 16.0) + 1.0,
+                    32.0,
+                    16.0,
+                    (32.0 * i as f64) + (10.0 * 32.0),
+                    0.0,
+                    32.0,
+                    32.0,
+                )
+                .unwrap();
         }
     }
 
-    pub fn render_timer(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
+    pub fn render_timer(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+    ) {
         let mut timer = (grid.get_timer() as u64).to_string();
         if timer.len() == 1 {
             timer = format!("00{}", timer);
@@ -94,23 +115,32 @@ impl Overlay {
 
         let positions = self.get_sentence_positions(&timer, false);
         for (i, (x, y)) in positions.iter().enumerate() {
-            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                sprites,
-                x * 32.0,
-                (y * 16.0) + 1.0,
-                32.0,
-                16.0,
-                (32.0 * i as f64) + (16.0 * 32.0),
-                0.0,
-                32.0,
-                32.0,
-            )
-            .unwrap();
+            context
+                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    sprites,
+                    x * 32.0,
+                    (y * 16.0) + 1.0,
+                    32.0,
+                    16.0,
+                    (32.0 * i as f64) + (16.0 * 32.0),
+                    0.0,
+                    32.0,
+                    32.0,
+                )
+                .unwrap();
         }
     }
 
-    pub fn render_score(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement) {
-        let mut score =  ((grid.get_diamonds_number() - grid.get_tiles_with_entity::<Diamond>().len() as i32)*10).to_string();
+    pub fn render_score(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+    ) {
+        let mut score = ((grid.get_diamonds_number()
+            - grid.get_tiles_with_entity::<Diamond>().len() as i32)
+            * 10)
+            .to_string();
         if score.len() == 1 {
             score = format!("00000{}", score);
         } else if score.len() == 2 {
@@ -125,24 +155,31 @@ impl Overlay {
 
         let positions = self.get_sentence_positions(&score, false);
         for (i, (x, y)) in positions.iter().enumerate() {
-            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                sprites,
-                x * 32.0,
-                (y * 16.0) + 1.0,
-                32.0,
-                16.0,
-                (32.0 * i as f64) + (24.0 * 32.0),
-                0.0,
-                32.0,
-                32.0,
-            )
-            .unwrap();
+            context
+                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    sprites,
+                    x * 32.0,
+                    (y * 16.0) + 1.0,
+                    32.0,
+                    16.0,
+                    (32.0 * i as f64) + (24.0 * 32.0),
+                    0.0,
+                    32.0,
+                    32.0,
+                )
+                .unwrap();
         }
     }
 }
 
 impl Renderable for Overlay {
-    fn render(&self, grid: &Grid, context: &mut CanvasRenderingContext2d, sprites: &HtmlImageElement, _: &Zone) {
+    fn render(
+        &self,
+        grid: &Grid,
+        context: &mut CanvasRenderingContext2d,
+        sprites: &HtmlImageElement,
+        _: &Zone,
+    ) {
         self.render_diamonds_number(grid, context, sprites);
         self.render_diamonds_claimed(grid, context, sprites);
         self.render_timer(grid, context, sprites);

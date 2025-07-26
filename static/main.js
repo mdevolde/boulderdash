@@ -1,4 +1,4 @@
-import init, { GameManager } from './out/boulderdash.js';
+import init, { GameManager, TitleScreenManager } from './out/boulderdash.js';
 
 async function run() {
     await init();
@@ -6,6 +6,7 @@ async function run() {
     let lastTime = 0;
     const tickDuration = 1000 / 20;
     let game = new GameManager();
+    let titleScreen = await TitleScreenManager.create();
     let gameStarted = false;
     const keysPressed = {};
 
@@ -62,6 +63,7 @@ async function run() {
     document.addEventListener('keydown', async (event) => {
         if (!gameStarted) {
             gameStarted = true;
+            titleScreen.clear_screen(); // Clear the title screen
             await game.start();
             requestAnimationFrame(gameLoop);
         } else {
@@ -72,6 +74,19 @@ async function run() {
     document.addEventListener('keyup', (event) => {
         keysPressed[event.key] = false;
     });
+
+    function titleLoop(timestamp) {
+        if (!gameStarted) {
+            const deltaTime = timestamp - lastTime;
+
+            if (deltaTime >= 10) {
+                lastTime = timestamp;
+                titleScreen.update();
+            }
+
+            requestAnimationFrame(titleLoop);
+        }
+    }
 
     function gameLoop(timestamp) {
         const deltaTime = timestamp - lastTime;
@@ -97,6 +112,8 @@ async function run() {
 
         requestAnimationFrame(gameLoop);
     }
+
+    requestAnimationFrame(titleLoop);
 }
 
 run();

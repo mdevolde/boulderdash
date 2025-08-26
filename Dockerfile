@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Step 1 : Create an image for building the Rust project
-FROM rust:1.85 AS builder
+FROM rust:1.89 AS builder
 
 # Install the build dependencies
 RUN apt-get update && apt-get install -y build-essential
